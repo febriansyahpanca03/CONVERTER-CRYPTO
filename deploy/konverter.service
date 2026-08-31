@@ -1,0 +1,21 @@
+[Unit]
+Description=konverter-kripto backend
+After=network.target
+
+[Service]
+Type=simple
+User=konverter
+Group=konverter
+WorkingDirectory=/opt/konverter/server
+EnvironmentFile=/opt/konverter/server/.env
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/konverter/server
+
+[Install]
+WantedBy=multi-user.target
