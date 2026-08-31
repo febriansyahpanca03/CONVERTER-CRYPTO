@@ -487,8 +487,12 @@ export default function App() {
                 fontWeight: 700,
                 letterSpacing: "0.08em",
                 margin: 0,
-                color: t.nova,
-                textShadow: `0 0 24px ${t.nova}55`,
+                backgroundImage: `linear-gradient(90deg, ${t.nova}, ${t.aqua})`,
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+                WebkitTextStroke: `1.25px ${t.ground}`,
+                textShadow: `0 0 26px ${t.nova}77`,
               }}
             >
               PANCA SWAP AGENT
