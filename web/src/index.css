@@ -731,6 +731,21 @@ img {
   opacity: 0.5;
   cursor: default;
 }
+/* Varian dengan label teks (Salin/Bagikan/Favorit) — lebar menyesuaikan */
+/* isi, bukan kotak 32px tetap, supaya teksnya tidak numpuk.             */
+.psa-icon-btn.has-label {
+  width: auto;
+  height: auto;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.psa-icon-btn.has-label:hover:not(:disabled) {
+  border-color: var(--primary);
+}
 
 /* ============================================================ */
 /*  Quick command                                                 */

@@ -285,25 +285,30 @@ export default function App() {
                     padding: "0 var(--space-5) var(--space-5)",
                   }}
                 >
-                  <button className="psa-icon-btn" onClick={copyResult} title="Salin hasil" aria-label="Salin hasil">
-                    ⧉ <span style={{ fontSize: 12, marginLeft: 4 }}>Salin</span>
+                  <button
+                    className="psa-icon-btn has-label"
+                    onClick={copyResult}
+                    title="Salin hasil"
+                    aria-label="Salin hasil"
+                  >
+                    <span aria-hidden="true">⧉</span> Salin
                   </button>
                   <button
-                    className="psa-icon-btn"
+                    className="psa-icon-btn has-label"
                     onClick={shareResult}
                     title="Bagikan hasil"
                     aria-label="Bagikan hasil"
                   >
-                    ↗ <span style={{ fontSize: 12, marginLeft: 4 }}>Bagikan</span>
+                    <span aria-hidden="true">↗</span> Bagikan
                   </button>
                   <button
-                    className="psa-icon-btn"
+                    className="psa-icon-btn has-label"
                     onClick={toggleFavorite}
                     title={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
                     aria-label={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
-                    style={isFav ? { color: "var(--warning)" } : undefined}
+                    style={isFav ? { color: "var(--warning)", borderColor: "var(--warning)" } : undefined}
                   >
-                    {isFav ? "★" : "☆"} <span style={{ fontSize: 12, marginLeft: 4 }}>Favorit</span>
+                    <span aria-hidden="true">{isFav ? "★" : "☆"}</span> Favorit
                   </button>
                 </div>
               )}
