@@ -176,6 +176,29 @@ async function fetchRates(fromSym, toSym) {
   };
 }
 
+/* ---------- Riwayat konversi, disimpan di browser (bukan server) --- */
+
+const HISTORY_KEY = "panca-swap-history";
+const HISTORY_MAX = 5;
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(list) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_MAX)));
+  } catch {
+    /* mode privat / storage penuh — riwayat cukup hidup di memori saja */
+  }
+}
+
 async function fetchTickerPrices() {
   const ids = TICKER_SYMS.map((s) => COINS[s].id).join(",");
   const res = await fetch(`/api/price?ids=${ids}&vs=usd`);
@@ -332,7 +355,38 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState("");
   const [icons, setIcons] = useState({});
+  const [history, setHistory] = useState(() => loadHistory());
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef(null);
+
+  function pushHistory(entry) {
+    setHistory((prev) => {
+      const deduped = prev.filter(
+        (h) => !(h.from === entry.from && h.to === entry.to && h.amount === entry.amount)
+      );
+      const next = [entry, ...deduped].slice(0, HISTORY_MAX);
+      saveHistory(next);
+      return next;
+    });
+  }
+
+  function reuseHistory(h) {
+    const text = `${formatAmount(h.amount, h.from)} ${h.from} ke ${h.to}`;
+    setQuery(text);
+    run(text);
+  }
+
+  function copyResult() {
+    if (!result) return;
+    const text = `${formatAmount(result.value, result.to)} ${result.to.toUpperCase()}`;
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {});
+  }
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -383,7 +437,9 @@ export default function App() {
 
     try {
       const { rate, updatedAt } = await fetchRates(from, to);
-      setResult({ amount, from, to, rate, value: amount * rate, updatedAt });
+      const value = amount * rate;
+      setResult({ amount, from, to, rate, value, updatedAt });
+      pushHistory({ amount, from, to, rate, value, at: Date.now() });
       setStatus("done");
     } catch (err) {
       setStatus("error");
@@ -406,7 +462,9 @@ export default function App() {
 
     try {
       const { rate, updatedAt } = await fetchRates(newFrom, newTo);
-      setResult({ amount: newAmount, from: newFrom, to: newTo, rate, value: newAmount * rate, updatedAt });
+      const newValue = newAmount * rate;
+      setResult({ amount: newAmount, from: newFrom, to: newTo, rate, value: newValue, updatedAt });
+      pushHistory({ amount: newAmount, from: newFrom, to: newTo, rate, value: newValue, at: Date.now() });
       setStatus("done");
     } catch (err) {
       setStatus("error");
@@ -645,7 +703,7 @@ export default function App() {
                 }}
               >
                 <div style={{ fontSize: 13, color: t.haze, marginBottom: 10 }}>Dari</div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <span
                     style={{
                       fontSize: "clamp(22px, 6vw, 28px)",
@@ -703,7 +761,7 @@ export default function App() {
                 }}
               >
                 <div style={{ fontSize: 13, color: t.haze, marginBottom: 10 }}>Ke ≈</div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <span
                     style={{
                       fontSize: "clamp(22px, 6vw, 28px)",
@@ -717,6 +775,24 @@ export default function App() {
                   <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <CoinIcon sym={result.to} t={t} iconUrl={icons[COINS[result.to]?.id]} />
                     <span style={{ fontWeight: 600 }}>{result.to.toUpperCase()}</span>
+                    <button
+                      className="kk-refresh"
+                      onClick={copyResult}
+                      title={copied ? "Tersalin!" : "Salin hasil"}
+                      aria-label="Salin hasil"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: copied ? "#4ADE80" : t.haze,
+                        cursor: "pointer",
+                        fontSize: 15,
+                        padding: 2,
+                        lineHeight: 1,
+                        transition: "color .15s",
+                      }}
+                    >
+                      {copied ? "✓" : "⧉"}
+                    </button>
                   </span>
                 </div>
               </div>
@@ -768,6 +844,53 @@ export default function App() {
             </div>
           )}
 
+          {history.length > 0 && (
+            <div style={{ marginTop: 22 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: t.haze,
+                  marginBottom: 8,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Riwayat Terakhir
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {history.map((h, i) => (
+                  <button
+                    key={`${h.from}-${h.to}-${h.amount}-${i}`}
+                    onClick={() => reuseHistory(h)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      background: t.panel,
+                      border: `1px solid ${t.edge}`,
+                      borderRadius: 8,
+                      padding: "10px 14px",
+                      color: t.starlight,
+                      fontFamily: "inherit",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span style={{ color: t.haze }}>
+                      {formatAmount(h.amount, h.from)} {h.from.toUpperCase()} →{" "}
+                      {h.to.toUpperCase()}
+                    </span>
+                    <span style={{ color: t.nova, fontWeight: 600, flexShrink: 0 }}>
+                      {formatAmount(h.value, h.to)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p
             style={{
               color: t.haze,
@@ -783,6 +906,27 @@ export default function App() {
           </p>
         </div>
       </div>
+
+      <footer
+        style={{
+          position: "relative",
+          zIndex: 1,
+          borderTop: `1px solid ${t.edge}`,
+          padding: "18px 20px",
+          textAlign: "center",
+        }}
+      >
+        <p style={{ margin: 0, fontSize: 12, color: t.haze }}>
+          Panca Swap Agent · Harga oleh{" "}
+          <a href="https://www.coingecko.com" target="_blank" rel="noopener" style={{ color: t.aqua }}>
+            CoinGecko
+          </a>{" "}
+          · Parsing bahasa oleh{" "}
+          <a href="https://groq.com" target="_blank" rel="noopener" style={{ color: t.aqua }}>
+            Groq
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
