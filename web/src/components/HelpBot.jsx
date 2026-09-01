@@ -23,6 +23,50 @@ function Avatar({ size = 22, circle = true }) {
   );
 }
 
+/* Maskot bergerak: 86 potongan pose diambil otomatis dari sheet         */
+/* referensi, disimpan sebagai file terpisah di /public/mascot/. Karena  */
+/* tiap file berdiri sendiri (bukan satu sprite sheet), cukup gonta-ganti */
+/* <img src> tiap ~130ms — tidak perlu tahu koordinat potongan pastinya. */
+const MASCOT_FRAME_COUNT = 86;
+const MASCOT_FRAMES = Array.from(
+  { length: MASCOT_FRAME_COUNT },
+  (_, i) => `/mascot/frame_${String(i + 1).padStart(2, "0")}.png`
+);
+
+function AnimatedMascot({ size = 76 }) {
+  const [index, setIndex] = useState(0);
+  const [broken, setBroken] = useState(false);
+
+  // Hangatkan cache browser di awal supaya putaran pertama juga mulus,
+  // bukan cuma putaran kedua dan seterusnya.
+  useEffect(() => {
+    MASCOT_FRAMES.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (broken) return;
+    const id = setInterval(() => setIndex((i) => (i + 1) % MASCOT_FRAME_COUNT), 130);
+    return () => clearInterval(id);
+  }, [broken]);
+
+  if (broken) return <span aria-hidden="true" style={{ fontSize: size * 0.8 }}>🤖</span>;
+
+  return (
+    <img
+      src={MASCOT_FRAMES[index]}
+      alt=""
+      width={size}
+      height={size}
+      draggable={false}
+      style={{ objectFit: "contain" }}
+      onError={() => setBroken(true)}
+    />
+  );
+}
+
 /* Maskot robot, sekarang jadi asisten AI beneran (bukan FAQ statis) —  */
 /* pakai Groq yang sudah terhubung lewat /api/assistant, dengan prompt  */
 /* yang dibatasi hanya menjawab seputar cara pakai situs ini.            */
@@ -159,7 +203,7 @@ export default function HelpBot() {
           title="Asisten bantuan"
         >
           <span className="psa-help-bot-bob">
-            <Avatar size={76} circle={false} />
+            <AnimatedMascot size={76} />
           </span>
         </button>
       </div>
