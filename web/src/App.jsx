@@ -14,7 +14,7 @@ import { formatAmount } from "./lib/format.js";
 import { loadHistory, saveHistory, loadFavorites, saveFavorites } from "./lib/storage.js";
 
 const NOT_UNDERSTOOD =
-  'Kami belum memahami perintah tersebut. Coba tulis "250 USDT ke ETH" atau pilih aset secara manual.';
+  'Belum kebaca nih maksudnya. Coba tulis kayak "250 USDT ke ETH", atau pilih asetnya manual aja.';
 
 export default function App() {
   const [amount, setAmount] = useState("");
@@ -98,15 +98,15 @@ export default function App() {
     const amt = Number(String(rawAmount).trim().replace(",", "."));
 
     if (!String(rawAmount).trim()) {
-      setAmountError("Masukkan jumlah terlebih dahulu.");
+      setAmountError("Isi dulu jumlahnya.");
       return;
     }
     if (!Number.isFinite(amt)) {
-      setAmountError("Masukkan angka yang valid.");
+      setAmountError("Itu bukan angka ya, coba cek lagi.");
       return;
     }
     if (amt <= 0) {
-      setAmountError("Jumlah harus lebih dari nol.");
+      setAmountError("Jumlahnya harus lebih dari nol.");
       return;
     }
     setAmountError("");
@@ -130,7 +130,7 @@ export default function App() {
       const isOffline = err.message?.includes("Failed to fetch");
       setOffline(isOffline);
       setMessage(
-        isOffline ? "Server tidak merespons. Periksa koneksi internet kamu." : err.message
+        isOffline ? "Server-nya nggak merespons. Coba cek koneksi internet kamu." : err.message
       );
     }
   }
@@ -161,7 +161,7 @@ export default function App() {
     for (const s of [from, to]) {
       if (!known(s)) {
         setStatus("error");
-        setMessage(`${s.toUpperCase()} belum ada di daftar aset yang didukung.`);
+        setMessage(`${s.toUpperCase()} belum ada di daftar aset yang aku kenal.`);
         return;
       }
     }
@@ -200,7 +200,7 @@ export default function App() {
     const text = `${formatAmount(result.value, result.to)} ${result.to.toUpperCase()}`;
     navigator.clipboard
       ?.writeText(text)
-      .then(() => showToast("Hasil disalin ke clipboard"))
+      .then(() => showToast("Hasilnya udah disalin"))
       .catch(() => {});
   }
 
@@ -214,7 +214,7 @@ export default function App() {
       saveFavorites(next);
       return next;
     });
-    showToast(isFav ? "Dihapus dari favorit" : "Ditambahkan ke favorit");
+    showToast(isFav ? "Oke, dihapus dari favorit" : "Masuk favorit!");
   }
 
   function shareResult() {
@@ -225,7 +225,7 @@ export default function App() {
       if (amount) u.searchParams.set("amount", amount);
       navigator.clipboard
         ?.writeText(u.toString())
-        .then(() => showToast("Tautan hasil disalin, siap dibagikan"))
+        .then(() => showToast("Link-nya udah disalin, tinggal share"))
         .catch(() => {});
     } catch {
       /* tidak fatal kalau URL API tidak tersedia */
@@ -243,8 +243,8 @@ export default function App() {
           <div className="psa-hero">
             <h1 className="psa-h1">Panca Swap Agent</h1>
             <p className="psa-subtitle">
-              Crypto converter — hitung konversi harga crypto secara real-time dengan input bahasa
-              natural atau pilih aset secara manual.
+              Ketik aja apa yang mau kamu hitung, atau pilih sendiri asetnya lewat dropdown. Harganya
+              selalu yang terbaru, langsung dari pasar.
             </p>
           </div>
 
@@ -340,10 +340,10 @@ export default function App() {
             <section id="about" className="psa-card" style={{ padding: "var(--space-5)" }}>
               <h2 style={{ fontSize: 16, margin: "0 0 8px" }}>Tentang Panca Swap Agent</h2>
               <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7 }}>
-                Panca Swap Agent adalah alat bantu hitung konversi harga crypto dan mata uang, memakai
-                harga real-time dari CoinGecko dan parsing bahasa natural dari model AI (Groq). Aplikasi
-                ini murni kalkulator estimasi — tidak menyimpan dana, tidak terhubung ke dompet
-                (wallet), dan tidak melakukan transaksi sungguhan apa pun.
+                Ini sebenarnya cuma kalkulator, bukan exchange beneran. Ketik kalimat biasa kayak "250
+                USDT ke ETH" atau pilih sendiri asetnya, nanti dihitungin pakai harga dari CoinGecko.
+                Nggak ada dompet yang tersambung, nggak ada dana yang disimpan, dan nggak ada transaksi
+                asli yang jalan — murni buat lihat-lihat kurs aja.
               </p>
             </section>
           </div>

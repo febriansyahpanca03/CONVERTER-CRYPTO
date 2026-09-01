@@ -16,7 +16,7 @@ export default function HistoryPanel({ history, onReuse, onClear }) {
       </div>
 
       {history.length === 0 ? (
-        <p className="psa-history-empty">Belum ada riwayat konversi. Hasil konversimu akan muncul di sini.</p>
+        <p className="psa-history-empty">Belum ada apa-apa di sini. Coba hitung sesuatu dulu.</p>
       ) : (
         <div className="psa-history-list">
           {history.map((h, i) => (

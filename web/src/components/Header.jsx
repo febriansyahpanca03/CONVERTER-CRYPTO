@@ -22,7 +22,7 @@ export default function Header() {
           </span>
           <span className="psa-logo-text">
             <span className="psa-logo-name">Panca Swap Agent</span>
-            <span className="psa-logo-tagline">Konverter kripto real-time</span>
+            <span className="psa-logo-tagline">Kurs kripto, selalu baru</span>
           </span>
         </a>
 

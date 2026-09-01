@@ -3,7 +3,7 @@ import { askAssistant } from "../lib/api.js";
 
 const GREETING = {
   role: "assistant",
-  text: "Halo! Aku asisten Panca Swap Agent 👋 Tanya aku cara pakai converter ini, atau ketik pertanyaanmu di bawah.",
+  text: "Halo 👋 Bingung cara pakainya? Tanya aja di sini.",
 };
 
 /* Avatar maskot: pakai gambar kalau ada di /public/mascot.png,          */
@@ -141,7 +141,7 @@ export default function HelpBot() {
             <Avatar size={26} />
             <div>
               <h3 style={{ margin: 0 }}>Asisten Panca Swap</h3>
-              <span style={{ fontSize: 11, color: "var(--text-faint)" }}>Siap bantu cara pakai situs ini</span>
+              <span style={{ fontSize: 11, color: "var(--text-faint)" }}>Tanya-tanya soal situs ini</span>
             </div>
           </div>
 

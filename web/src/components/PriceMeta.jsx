@@ -72,7 +72,7 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
         </div>
         <div className="psa-meta-row">
           <span>
-            Data harga dari CoinGecko · Diperbarui {relativeTime(result.updatedAt)}
+            Harganya dari CoinGecko, di-update {relativeTime(result.updatedAt)}
           </span>
           <button
             className="psa-icon-btn"
@@ -84,7 +84,8 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
           </button>
         </div>
         <p className="psa-meta-disclaimer">
-          Estimasi harga tengah pasar, belum termasuk biaya jaringan dan slippage exchange.
+          Ini harga pasar rata-rata. Kalau beneran ditukar di exchange, biasanya sedikit meleset
+          karena ada biaya jaringan dan slippage.
         </p>
       </div>
     );

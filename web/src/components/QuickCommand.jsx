@@ -9,7 +9,7 @@ export default function QuickCommand({ query, onQueryChange, onRun, status }) {
     <div className="psa-card psa-quick">
       <div className="psa-quick-head">
         <span className="psa-quick-title">Quick Command</span>
-        <span className="psa-quick-badge">Bahasa natural</span>
+        <span className="psa-quick-badge">Ketik bebas</span>
       </div>
       <div className="psa-quick-row">
         <label htmlFor="psa-quick-input" className="visually-hidden">

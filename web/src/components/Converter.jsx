@@ -30,7 +30,7 @@ export default function Converter({
   return (
     <div className="psa-card psa-converter" id="converter">
       <div className="psa-field">
-        <div className="psa-field-label">Anda membayar</div>
+        <div className="psa-field-label">Kamu bayar</div>
         <div className="psa-field-row">
           <label htmlFor="psa-amount" className="visually-hidden">
             Jumlah yang dibayar
@@ -70,7 +70,7 @@ export default function Converter({
       </div>
 
       <div className="psa-field">
-        <div className="psa-field-label">Anda menerima ≈</div>
+        <div className="psa-field-label">Kamu dapat ≈</div>
         <div className="psa-field-row">
           <span className={`psa-result-value ${showResult ? "is-primary" : ""}`} aria-live="polite">
             {loading ? "…" : showResult ? formatAmount(result.value, toSym) : "0"}
