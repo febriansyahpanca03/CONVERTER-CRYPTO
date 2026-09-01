@@ -456,18 +456,18 @@ export default function App() {
           position: absolute; inset: -50%;
           background-repeat: repeat;
           background-image:
-            radial-gradient(1px 1px at 40px 60px, #fff, transparent),
-            radial-gradient(1px 1px at 120px 20px, #fff, transparent),
-            radial-gradient(1.5px 1.5px at 200px 140px, #fff, transparent),
-            radial-gradient(1px 1px at 260px 80px, #fff, transparent),
-            radial-gradient(1.5px 1.5px at 320px 200px, #fff, transparent),
-            radial-gradient(1px 1px at 20px 190px, #fff, transparent),
-            radial-gradient(1px 1px at 160px 240px, #fff, transparent);
+            radial-gradient(2.5px 2.5px at 40px 60px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%),
+            radial-gradient(2px 2px at 120px 20px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%),
+            radial-gradient(3.5px 3.5px at 200px 140px, #fff 0%, rgba(255,255,255,.6) 40%, transparent 75%),
+            radial-gradient(2px 2px at 260px 80px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%),
+            radial-gradient(3.5px 3.5px at 320px 200px, #fff 0%, rgba(255,255,255,.6) 40%, transparent 75%),
+            radial-gradient(2.5px 2.5px at 20px 190px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%),
+            radial-gradient(2px 2px at 160px 240px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%);
           animation: kk-twinkle 4s ease-in-out infinite alternate;
         }
         .kk-stars-near {
           background-size: 180px 140px;
-          opacity: .6;
+          opacity: .85;
           transform-origin: center center;
           animation: kk-twinkle 3s ease-in-out infinite alternate, kk-star-spin 220s linear infinite;
         }
