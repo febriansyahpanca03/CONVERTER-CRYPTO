@@ -76,6 +76,19 @@ export async function fetchTickerPrices() {
   return res.json();
 }
 
+export async function askAssistant(text) {
+  const res = await fetch("/api/assistant", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (res.status === 429)
+    throw new Error("Terlalu banyak pertanyaan. Tunggu sebentar ya.");
+  if (!res.ok) throw new Error("Asisten sedang tidak bisa dihubungi.");
+  const data = await res.json();
+  return data.reply;
+}
+
 export async function fetchIcons(ids) {
   const res = await fetch(`/api/icons?ids=${ids}`);
   if (!res.ok) throw new Error("icons fetch failed");

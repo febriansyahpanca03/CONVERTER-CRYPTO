@@ -101,6 +101,71 @@ app.post("/api/parse", rateLimit, async (req, res) => {
   }
 });
 
+/* ---------- Asisten bantuan: jawab pertanyaan cara pakai situs ------ */
+
+const ASSISTANT_SYSTEM =
+  'Kamu adalah asisten bantuan untuk website "Panca Swap Agent", sebuah kalkulator ' +
+  "konversi harga crypto & mata uang. Jawab pertanyaan pengguna tentang CARA PAKAI " +
+  "situs ini secara singkat, ramah, dan dalam Bahasa Indonesia (maksimal 3-4 kalimat, " +
+  "tanpa markdown).\n\n" +
+  "Fakta tentang situs ini yang boleh kamu sampaikan:\n" +
+  "- Ada dua cara pakai: (1) Converter — pilih aset asal & tujuan lewat dropdown yang " +
+  'bisa dicari, masukkan jumlah, klik "Konversi". (2) Quick Command — ketik kalimat ' +
+  'bebas seperti "250 USDT ke ETH", AI yang membaca kalimatnya.\n' +
+  "- Ada tombol swap (⇅) untuk membalik arah tukar.\n" +
+  "- Hasil bisa disalin, dibagikan lewat tautan, dan dijadikan favorit.\n" +
+  "- Ada riwayat 5 konversi terakhir tersimpan di browser (localStorage), bisa " +
+  "diklik ulang.\n" +
+  "- Harga diambil real-time dari CoinGecko, ada label status Live/Delayed/Data lama.\n" +
+  "- Market ticker di atas menampilkan harga berjalan, bisa diklik untuk mengisi " +
+  "converter.\n" +
+  "- Situs ini HANYA kalkulator estimasi. TIDAK ada wallet, TIDAK menyimpan dana, " +
+  "TIDAK melakukan transaksi sungguhan apa pun.\n\n" +
+  "Kalau pertanyaan di luar topik cara pakai situs ini (nasihat investasi, prediksi " +
+  "harga, topik umum lain), tolak dengan sopan dan arahkan kembali ke topik cara " +
+  "pakai situs.";
+
+app.post("/api/assistant", rateLimit, async (req, res) => {
+  if (!GROQ_KEY) {
+    return res.status(500).json({ error: "Asisten belum dikonfigurasi." });
+  }
+
+  const text = String(req.body?.text || "").slice(0, 300).trim();
+  if (!text) return res.status(400).json({ error: "Pertanyaan kosong." });
+
+  try {
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${GROQ_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-20b",
+        max_tokens: 300,
+        temperature: 0.4,
+        reasoning_effort: "low",
+        messages: [
+          { role: "system", content: ASSISTANT_SYSTEM },
+          { role: "user", content: text },
+        ],
+      }),
+    });
+
+    if (!r.ok) {
+      console.error("assistant", r.status, await r.text());
+      return res.status(502).json({ error: "Asisten tidak merespons." });
+    }
+
+    const data = await r.json();
+    const reply = (data.choices?.[0]?.message?.content || "").trim();
+    res.json({ reply: reply || "Maaf, saya belum bisa menjawab itu." });
+  } catch (err) {
+    console.error("assistant", err);
+    res.status(502).json({ error: "Asisten tidak merespons." });
+  }
+});
+
 /* ---------- Harga, dengan cache 20 detik ---------------------------- */
 /* Cache memangkas panggilan ke CoinGecko drastis: sepuluh orang yang   */
 /* menghitung BTC dalam menit yang sama hanya jadi tiga permintaan.     */
