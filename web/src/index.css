@@ -983,10 +983,52 @@ img {
 /* ============================================================ */
 /*  Help bot                                                       */
 /* ============================================================ */
-.psa-help-bot {
+/* Track: elemen yang benar-benar berjalan bolak-balik di sepanjang    */
+/* tepi bawah layar. Saat panel chat dibuka, ditambatkan (is-docked) ke */
+/* pojok kanan bawah supaya tetap terlihat menyatu dengan panelnya —    */
+/* tidak "kabur" ke tengah layar saat sedang diajak ngobrol.            */
+.psa-help-bot-track {
   position: fixed;
-  right: 20px;
   bottom: 20px;
+  left: 6%;
+  z-index: 50;
+  animation: psa-mascot-walk 24s ease-in-out infinite;
+}
+.psa-help-bot-track.is-docked {
+  animation: none;
+  left: auto;
+  right: 20px;
+}
+@keyframes psa-mascot-walk {
+  0% {
+    left: 6%;
+    transform: scaleX(1);
+  }
+  47% {
+    left: 78%;
+    transform: scaleX(1);
+  }
+  50% {
+    left: 78%;
+    transform: scaleX(-1);
+  }
+  97% {
+    left: 6%;
+    transform: scaleX(-1);
+  }
+  100% {
+    left: 6%;
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-help-bot-track {
+    animation: none;
+  }
+}
+
+.psa-help-bot {
+  position: relative;
   z-index: 50;
   width: 52px;
   height: 52px;
@@ -1000,6 +1042,27 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.psa-help-bot-bob {
+  display: flex;
+  animation: psa-mascot-bob 0.6s ease-in-out infinite;
+}
+@keyframes psa-mascot-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-help-bot-bob {
+    animation: none;
+  }
+}
+.is-docked .psa-help-bot-bob {
+  animation: none;
 }
 .psa-help-panel {
   position: fixed;
@@ -1192,16 +1255,20 @@ img {
   .psa-header-inner {
     padding: 0 var(--space-4);
   }
-  .psa-help-bot {
-    right: 14px;
+  .psa-help-bot-track {
     bottom: 14px;
+  }
+  .psa-help-bot-track.is-docked {
+    right: 14px;
+  }
+  .psa-help-bot {
     width: 46px;
     height: 46px;
     font-size: 18px;
   }
   .psa-help-panel {
     right: 14px;
-    bottom: 68px;
+    bottom: 62px;
   }
 }
 @media (max-width: 420px) {

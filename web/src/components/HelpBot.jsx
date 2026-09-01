@@ -149,16 +149,20 @@ export default function HelpBot() {
           </div>
         </div>
       )}
-      <button
-        ref={btnRef}
-        className="psa-help-bot"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-label={open ? "Tutup asisten" : "Buka asisten bantuan"}
-        title="Asisten bantuan"
-      >
-        <Avatar size={28} />
-      </button>
+      <div className={`psa-help-bot-track ${open ? "is-docked" : ""}`}>
+        <button
+          ref={btnRef}
+          className="psa-help-bot"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? "Tutup asisten" : "Buka asisten bantuan"}
+          title="Asisten bantuan"
+        >
+          <span className="psa-help-bot-bob">
+            <Avatar size={28} />
+          </span>
+        </button>
+      </div>
     </>
   );
 }
