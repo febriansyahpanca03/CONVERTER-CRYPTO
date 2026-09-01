@@ -27,11 +27,14 @@ function Avatar({ size = 22, circle = true }) {
 /* referensi, disimpan sebagai file terpisah di /public/mascot/. Karena  */
 /* tiap file berdiri sendiri (bukan satu sprite sheet), cukup gonta-ganti */
 /* <img src> tiap ~130ms — tidak perlu tahu koordinat potongan pastinya. */
-const MASCOT_FRAME_COUNT = 86;
-const MASCOT_FRAMES = Array.from(
-  { length: MASCOT_FRAME_COUNT },
-  (_, i) => `/mascot/frame_${String(i + 1).padStart(2, "0")}.png`
-);
+/* Frame-frame ini masih membawa sisa angka/label teks dari sheet asli */
+/* yang nempel langsung ke gambar karakternya (tidak terpisah otomatis), */
+/* jadi dikeluarkan dari daftar animasi.                                 */
+const MASCOT_BAD_FRAMES = new Set([35, 53, 63, 64]);
+const MASCOT_FRAMES = Array.from({ length: 86 }, (_, i) => i + 1)
+  .filter((n) => !MASCOT_BAD_FRAMES.has(n))
+  .map((n) => `/mascot/frame_${String(n).padStart(2, "0")}.png`);
+const MASCOT_FRAME_COUNT = MASCOT_FRAMES.length;
 
 function AnimatedMascot({ size = 76 }) {
   const [index, setIndex] = useState(0);
