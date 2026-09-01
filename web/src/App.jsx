@@ -395,6 +395,29 @@ export default function App() {
     }
   }
 
+  async function swapDirection() {
+    if (!result) return;
+    const newFrom = result.to;
+    const newTo = result.from;
+    const newAmount = result.value;
+
+    setStatus("loading");
+    setQuery(`${formatAmount(newAmount, newFrom)} ${newFrom} ke ${newTo}`);
+
+    try {
+      const { rate, updatedAt } = await fetchRates(newFrom, newTo);
+      setResult({ amount: newAmount, from: newFrom, to: newTo, rate, value: newAmount * rate, updatedAt });
+      setStatus("done");
+    } catch (err) {
+      setStatus("error");
+      setMessage(
+        err.message?.includes("Failed to fetch")
+          ? "Server tidak merespons. Cek apakah layanan backend berjalan."
+          : err.message
+      );
+    }
+  }
+
   const t = PALETTE;
 
   return (
@@ -415,6 +438,7 @@ export default function App() {
         .kk-chip:hover { border-color: ${t.aqua}; color: ${t.starlight}; }
         .kk-btn:hover:not(:disabled) { background: ${t.nova}; }
         .kk-refresh:hover { color: ${t.aqua}; }
+        .kk-swap-btn:hover:not(:disabled) { color: ${t.nova}; border-color: ${t.nova}; transform: rotate(180deg); }
         @keyframes kk-pulse { 0%,100% { opacity: .35 } 50% { opacity: 1 } }
 
         /* --- live wallpaper: foto galaksi asli (NASA/Hubble, domain publik) --- */
@@ -644,7 +668,12 @@ export default function App() {
               </div>
 
               <div style={{ display: "flex", justifyContent: "center" }}>
-                <div
+                <button
+                  className="kk-swap-btn"
+                  onClick={swapDirection}
+                  disabled={status === "loading"}
+                  title="Balik arah tukar"
+                  aria-label="Balik arah tukar"
                   style={{
                     marginTop: -16,
                     marginBottom: -16,
@@ -660,10 +689,13 @@ export default function App() {
                     justifyContent: "center",
                     color: t.haze,
                     fontSize: 16,
+                    cursor: status === "loading" ? "wait" : "pointer",
+                    padding: 0,
+                    transition: "color .15s, border-color .15s, transform .15s",
                   }}
                 >
                   ⇅
-                </div>
+                </button>
               </div>
 
               <div
