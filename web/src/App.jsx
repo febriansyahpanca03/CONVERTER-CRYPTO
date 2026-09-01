@@ -441,15 +441,10 @@ export default function App() {
         .kk-swap-btn:hover:not(:disabled) { color: ${t.nova}; border-color: ${t.nova}; transform: rotate(180deg); }
         @keyframes kk-pulse { 0%,100% { opacity: .35 } 50% { opacity: 1 } }
 
-        /* --- live wallpaper: foto galaksi asli (NASA/Hubble, domain publik) --- */
+        /* --- live wallpaper: foto galaksi asli (NASA/Hubble, domain publik), statis --- */
         .kk-galaxy-photo {
           position: absolute; inset: -5%;
           background: url('/space-bg.jpg') center / cover no-repeat;
-          animation: kk-galaxy-pan 50s ease-in-out infinite;
-        }
-        @keyframes kk-galaxy-pan {
-          0%, 100% { transform: scale(1.05) translate(0,0); }
-          50% { transform: scale(1.14) translate(-1.5%, -1%); }
         }
         .kk-galaxy-scrim {
           position: absolute; inset: 0;
@@ -472,11 +467,12 @@ export default function App() {
         }
         .kk-stars-near {
           background-size: 180px 140px;
-          opacity: .5;
-          animation: kk-twinkle 3s ease-in-out infinite alternate, kk-drift-near 70s linear infinite;
+          opacity: .6;
+          transform-origin: center center;
+          animation: kk-twinkle 3s ease-in-out infinite alternate, kk-star-spin 220s linear infinite;
         }
-        @keyframes kk-twinkle { from { opacity: .2; } to { opacity: .8; } }
-        @keyframes kk-drift-near { from { transform: translate(0,0); } to { transform: translate(-180px,140px); } }
+        @keyframes kk-twinkle { from { opacity: .25; } to { opacity: .9; } }
+        @keyframes kk-star-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         @media (prefers-reduced-motion: reduce) {
           .kk-galaxy-photo, .kk-stars { animation: none !important; }
