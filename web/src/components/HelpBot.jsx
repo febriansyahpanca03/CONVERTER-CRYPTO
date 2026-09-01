@@ -8,16 +8,16 @@ const GREETING = {
 
 /* Avatar maskot: pakai gambar kalau ada di /public/mascot.png,          */
 /* fallback ke emoji kalau file belum ditaruh / gagal dimuat.            */
-function Avatar({ size = 22 }) {
+function Avatar({ size = 22, circle = true }) {
   const [broken, setBroken] = useState(false);
-  if (broken) return <span aria-hidden="true">🤖</span>;
+  if (broken) return <span aria-hidden="true" style={{ fontSize: size * 0.8 }}>🤖</span>;
   return (
     <img
       src="/mascot.png"
       alt=""
       width={size}
       height={size}
-      style={{ borderRadius: "50%", objectFit: "cover" }}
+      style={circle ? { borderRadius: "50%", objectFit: "cover" } : { objectFit: "contain" }}
       onError={() => setBroken(true)}
     />
   );
@@ -159,7 +159,7 @@ export default function HelpBot() {
           title="Asisten bantuan"
         >
           <span className="psa-help-bot-bob">
-            <Avatar size={28} />
+            <Avatar size={76} circle={false} />
           </span>
         </button>
       </div>

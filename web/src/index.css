@@ -992,12 +992,20 @@ img {
   bottom: 20px;
   left: 6%;
   z-index: 50;
-  animation: psa-mascot-walk 24s ease-in-out infinite;
+  animation: psa-mascot-walk 42s ease-in-out infinite;
 }
+/* Berhenti sejenak saat mouse mendekat, supaya gampang diklik tanpa    */
+/* mengejar target yang bergerak — posisinya tetap di titik terakhir.   */
+.psa-help-bot-track:hover,
+.psa-help-bot-track:focus-within {
+  animation-play-state: paused;
+}
+/* Ditambatkan penuh ke pojok saat panel chat terbuka. */
 .psa-help-bot-track.is-docked {
   animation: none;
   left: auto;
   right: 20px;
+  transform: none;
 }
 @keyframes psa-mascot-walk {
   0% {
@@ -1030,18 +1038,23 @@ img {
 .psa-help-bot {
   position: relative;
   z-index: 50;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  width: 76px;
+  height: 76px;
+  background: none;
   border: none;
-  color: var(--bg);
+  color: var(--text);
   font-size: 22px;
   cursor: pointer;
-  box-shadow: var(--shadow-md);
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+.psa-help-bot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .psa-help-bot-bob {
   display: flex;
@@ -1262,13 +1275,13 @@ img {
     right: 14px;
   }
   .psa-help-bot {
-    width: 46px;
-    height: 46px;
+    width: 60px;
+    height: 60px;
     font-size: 18px;
   }
   .psa-help-panel {
     right: 14px;
-    bottom: 62px;
+    bottom: 78px;
   }
 }
 @media (max-width: 420px) {
