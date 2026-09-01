@@ -1,10 +1,1070 @@
+/* ============================================================ */
+/*  Design tokens                                                 */
+/* ============================================================ */
+:root {
+  --bg: #080b14;
+  --panel: #10121f;
+  --panel-hover: #141728;
+  --border: #1f2437;
+  --border-strong: #2c3350;
+
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+
+  --primary: #22d3ee;
+  --primary-hover: #06b6d4;
+  --primary-soft: rgba(34, 211, 238, 0.12);
+  --secondary: #a78bfa;
+  --secondary-soft: rgba(167, 139, 250, 0.14);
+
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 3px rgba(34, 211, 238, 0.4);
+
+  --font-sans: "Plus Jakarta Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --header-h: 64px;
+  --converter-w: 680px;
+}
+
+/* ============================================================ */
+/*  Reset & base                                                  */
+/* ============================================================ */
 * {
   box-sizing: border-box;
 }
-
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input {
+  font-family: inherit;
+  color: inherit;
+}
+a {
+  color: inherit;
+}
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus ring konsisten & selalu terlihat untuk navigasi keyboard. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ============================================================ */
+/*  Layout shell                                                  */
+/* ============================================================ */
+.psa-app {
+  position: relative;
+  min-height: 100%;
+}
+
+.psa-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.psa-bg-photo {
+  position: absolute;
+  inset: 0;
+  background: url("/space-bg.jpg") center / cover no-repeat;
+  filter: blur(6px) saturate(0.85) brightness(0.6);
+  transform: scale(1.06); /* menutupi tepi blur */
+}
+.psa-bg-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 11, 20, 0.86) 0%, rgba(8, 11, 20, 0.93) 45%, var(--bg) 100%);
+}
+.psa-bg-stars {
+  position: absolute;
+  inset: -50%;
+  opacity: 0.35;
+  background-repeat: repeat;
+  background-size: 200px 160px;
+  background-image: radial-gradient(1.5px 1.5px at 40px 60px, #fff, transparent),
+    radial-gradient(1px 1px at 120px 20px, #fff, transparent),
+    radial-gradient(2px 2px at 200px 140px, #fff, transparent),
+    radial-gradient(1px 1px at 260px 80px, #fff, transparent);
+  animation: psa-star-spin 260s linear infinite;
+  transform-origin: center center;
+}
+@keyframes psa-star-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-bg-stars {
+    animation: none;
+  }
+}
+
+.psa-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================ */
+/*  Header                                                        */
+/* ============================================================ */
+.psa-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8, 11, 20, 0.75);
+  backdrop-filter: blur(10px);
+}
+.psa-header-inner {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.psa-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.psa-logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.psa-logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.psa-logo-name {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+.psa-logo-tagline {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.psa-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+.psa-nav a {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: var(--space-2) 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.psa-nav a:hover {
+  color: var(--text);
+}
+.psa-nav a.active {
+  color: var(--text);
+  border-color: var(--primary);
+}
+.psa-menu-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================ */
+/*  Market ticker                                                 */
+/* ============================================================ */
+.psa-ticker {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  background: rgba(16, 18, 31, 0.7);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.psa-ticker-label {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-right: 1px solid var(--border);
+  background: rgba(8, 11, 20, 0.6);
+  white-space: nowrap;
+}
+.psa-ticker-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+.psa-ticker-viewport {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+}
+.psa-ticker-track {
+  display: inline-flex;
+  width: max-content;
+  padding: 10px 0;
+  animation: psa-ticker-scroll 90s linear infinite;
+}
+.psa-ticker:hover .psa-ticker-track,
+.psa-ticker-track.paused {
+  animation-play-state: paused;
+}
+@keyframes psa-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-ticker-track {
+    animation: none;
+  }
+}
+.psa-ticker-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 0 18px;
+  border-right: 1px solid var(--border);
+  font-size: 13px;
+  white-space: nowrap;
+  background: none;
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+  cursor: pointer;
+}
+.psa-ticker-item:hover {
+  color: var(--primary);
+}
+.psa-ticker-sym {
+  font-weight: 600;
+  color: var(--text);
+}
+.psa-ticker-price {
+  color: var(--text-muted);
+}
+.psa-ticker-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 600;
+}
+.psa-ticker-up {
+  color: var(--success);
+}
+.psa-ticker-down {
+  color: var(--danger);
+}
+
+/* ============================================================ */
+/*  Main / hero                                                   */
+/* ============================================================ */
+.psa-main {
+  flex: 1;
+  padding: var(--space-7) var(--space-5) var(--space-6);
+}
+.psa-hero {
+  max-width: var(--converter-w);
+  margin: 0 auto var(--space-6);
+  text-align: center;
+}
+.psa-h1 {
+  font-size: clamp(26px, 4.5vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.psa-subtitle {
+  margin: var(--space-3) 0 0;
+  font-size: clamp(15px, 1.8vw, 17px);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.psa-stack {
+  max-width: var(--converter-w);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ============================================================ */
+/*  Card base                                                     */
+/* ============================================================ */
+.psa-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ============================================================ */
+/*  Converter (mode utama terstruktur)                            */
+/* ============================================================ */
+.psa-converter {
+  padding: var(--space-5);
+}
+.psa-field {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: rgba(8, 11, 20, 0.4);
+  transition: border-color 0.15s;
+}
+.psa-field:focus-within {
+  border-color: var(--primary);
+}
+.psa-field-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+.psa-field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.psa-amount-input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: clamp(22px, 5vw, 28px);
+  font-weight: 700;
+  padding: 0;
+}
+.psa-amount-input::placeholder {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+.psa-amount-input:focus {
+  outline: none;
+}
+.psa-field-hint {
+  margin-top: var(--space-2);
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.psa-swap-row {
+  display: flex;
+  justify-content: center;
+  margin: -14px 0;
+  position: relative;
+  z-index: 2;
+}
+.psa-swap-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, transform 0.2s;
+}
+.psa-swap-btn:hover:not(:disabled) {
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: rotate(180deg);
+}
+.psa-swap-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.psa-result-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.psa-result-value {
+  font-size: clamp(26px, 6vw, 34px);
+  font-weight: 700;
+  color: var(--text);
+  word-break: break-word;
+}
+.psa-result-value.is-primary {
+  color: var(--primary);
+}
+
+.psa-convert-btn {
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--primary);
+  color: #04222a;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  min-height: 44px;
+}
+.psa-convert-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+.psa-convert-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+.psa-convert-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ============================================================ */
+/*  Coin selector (searchable)                                    */
+/* ============================================================ */
+.psa-coin-select {
+  position: relative;
+  flex-shrink: 0;
+}
+.psa-coin-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px 6px 6px;
+  cursor: pointer;
+  min-height: 44px;
+}
+.psa-coin-trigger:hover {
+  border-color: var(--border-strong);
+}
+.psa-coin-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  overflow: hidden;
+}
+.psa-coin-sym {
+  font-weight: 700;
+  font-size: 14px;
+}
+.psa-coin-chevron {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.psa-coin-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(300px, 88vw);
+  max-height: 340px;
+  background: #0c0e19;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.psa-coin-search-wrap {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.psa-coin-search {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 14px;
+}
+.psa-coin-search:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.psa-coin-list {
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+.psa-coin-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  min-height: 44px;
+}
+.psa-coin-option:hover,
+.psa-coin-option.is-active {
+  background: var(--panel-hover);
+}
+.psa-coin-option-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.psa-coin-option-sym {
+  font-weight: 600;
+  font-size: 14px;
+}
+.psa-coin-option-full {
+  font-size: 12px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.psa-coin-empty {
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+/* ============================================================ */
+/*  Price meta / trust info                                       */
+/* ============================================================ */
+.psa-meta {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.psa-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.psa-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+}
+.psa-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.psa-status-live {
+  color: var(--success);
+}
+.psa-status-live .psa-status-dot {
+  background: var(--success);
+}
+.psa-status-delayed {
+  color: var(--warning);
+}
+.psa-status-delayed .psa-status-dot {
+  background: var(--warning);
+}
+.psa-status-stale,
+.psa-status-offline,
+.psa-status-error {
+  color: var(--danger);
+}
+.psa-status-stale .psa-status-dot,
+.psa-status-offline .psa-status-dot,
+.psa-status-error .psa-status-dot {
+  background: var(--danger);
+}
+.psa-meta-disclaimer {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  line-height: 1.6;
+}
+.psa-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  transition: color 0.15s;
+}
+.psa-icon-btn:hover:not(:disabled) {
+  color: var(--primary);
+}
+.psa-icon-btn.is-success {
+  color: var(--success);
+}
+.psa-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ============================================================ */
+/*  Quick command                                                 */
+/* ============================================================ */
+.psa-quick {
+  padding: var(--space-5);
+}
+.psa-quick-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.psa-quick-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+.psa-quick-badge {
+  font-size: 11px;
+  color: var(--secondary);
+  background: var(--secondary-soft);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+.psa-quick-row {
+  display: flex;
+  gap: var(--space-2);
+}
+.psa-quick-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(8, 11, 20, 0.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 15px;
+  padding: 12px 14px;
+  min-height: 44px;
+}
+.psa-quick-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.psa-quick-input::placeholder {
+  color: var(--text-faint);
+}
+.psa-quick-go {
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--panel-hover);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+}
+.psa-quick-go:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.psa-quick-go:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.psa-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.psa-chip {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 7px 13px;
+  cursor: pointer;
+  min-height: 36px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.psa-chip:hover {
+  border-color: var(--secondary);
+  color: var(--text);
+}
+
+/* ============================================================ */
+/*  Status panel (idle / loading / error)                         */
+/* ============================================================ */
+.psa-status-panel {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-5);
+  gap: var(--space-2);
+}
+.psa-status-panel p {
+  margin: 0;
+}
+.psa-status-panel .psa-error-text {
+  color: var(--danger);
+  font-size: 15px;
+  font-weight: 600;
+}
+.psa-status-panel .psa-error-help {
+  color: var(--text-muted);
+  font-size: 13px;
+  max-width: 46ch;
+}
+
+.psa-skeleton {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.psa-skeleton-bar {
+  height: 16px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--panel-hover) 25%, var(--border) 37%, var(--panel-hover) 63%);
+  background-size: 400% 100%;
+  animation: psa-shimmer 1.4s ease infinite;
+}
+@keyframes psa-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-skeleton-bar {
+    animation: none;
+  }
+}
+
+/* ============================================================ */
+/*  History                                                        */
+/* ============================================================ */
+.psa-history {
+  padding: var(--space-5);
+}
+.psa-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.psa-history-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.psa-history-clear {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 13px;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+}
+.psa-history-clear:hover {
+  color: var(--danger);
+}
+.psa-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.psa-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: rgba(8, 11, 20, 0.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 13.5px;
+  cursor: pointer;
+  text-align: left;
+  min-height: 44px;
+}
+.psa-history-item:hover {
+  border-color: var(--border-strong);
+}
+.psa-history-pair {
+  color: var(--text-muted);
+}
+.psa-history-value {
+  color: var(--primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.psa-history-time {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-left: var(--space-2);
+}
+.psa-history-empty {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+  padding: var(--space-4);
+}
+
+/* ============================================================ */
+/*  Toast                                                          */
+/* ============================================================ */
+.psa-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: #0c0e19;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  font-size: 13.5px;
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================================================ */
+/*  Help bot                                                       */
+/* ============================================================ */
+.psa-help-bot {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 50;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border: none;
+  color: var(--bg);
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.psa-help-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 84px;
+  z-index: 50;
+  width: min(300px, calc(100vw - 40px));
+  background: #0c0e19;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-4);
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.psa-help-panel h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* ============================================================ */
+/*  Footer                                                         */
+/* ============================================================ */
+.psa-footer {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--border);
+  padding: var(--space-4) var(--space-5);
+  text-align: center;
+}
+.psa-footer p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+.psa-footer a {
+  color: var(--secondary);
+  text-decoration: none;
+}
+.psa-footer a:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================ */
+/*  Responsive                                                     */
+/* ============================================================ */
+@media (max-width: 720px) {
+  .psa-main {
+    padding: var(--space-6) var(--space-4) var(--space-5);
+  }
+}
+@media (max-width: 640px) {
+  .psa-nav {
+    display: none;
+  }
+  .psa-menu-btn {
+    display: flex;
+  }
+  .psa-header-inner {
+    padding: 0 var(--space-4);
+  }
+  .psa-help-bot {
+    right: 14px;
+    bottom: 14px;
+    width: 46px;
+    height: 46px;
+    font-size: 18px;
+  }
+  .psa-help-panel {
+    right: 14px;
+    bottom: 68px;
+  }
+}
+@media (max-width: 420px) {
+  .psa-logo-tagline {
+    display: none;
+  }
+  .psa-coin-panel {
+    right: -12px;
+  }
 }

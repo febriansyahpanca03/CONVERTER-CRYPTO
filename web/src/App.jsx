@@ -1,412 +1,146 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import Starfield from "./components/Starfield.jsx";
+import Header from "./components/Header.jsx";
+import MarketTicker from "./components/MarketTicker.jsx";
+import Converter from "./components/Converter.jsx";
+import QuickCommand from "./components/QuickCommand.jsx";
+import PriceMeta from "./components/PriceMeta.jsx";
+import HistoryPanel from "./components/HistoryPanel.jsx";
+import Toast from "./components/Toast.jsx";
+import HelpBot from "./components/HelpBot.jsx";
+import { COINS, known } from "./data/assets.js";
+import { parseWithModel, parseFallback, fetchRates, fetchIcons } from "./lib/api.js";
+import { formatAmount } from "./lib/format.js";
+import { loadHistory, saveHistory, loadFavorites, saveFavorites } from "./lib/storage.js";
 
-/* ------------------------------------------------------------------ */
-/*  Daftar aset yang didukung                                          */
-/* ------------------------------------------------------------------ */
-
-const COINS = {
-  btc: { id: "bitcoin", name: "Bitcoin" },
-  eth: { id: "ethereum", name: "Ethereum" },
-  sol: { id: "solana", name: "Solana" },
-  bnb: { id: "binancecoin", name: "BNB" },
-  xrp: { id: "ripple", name: "XRP" },
-  ada: { id: "cardano", name: "Cardano" },
-  doge: { id: "dogecoin", name: "Dogecoin" },
-  matic: { id: "matic-network", name: "Polygon" },
-  dot: { id: "polkadot", name: "Polkadot" },
-  avax: { id: "avalanche-2", name: "Avalanche" },
-  link: { id: "chainlink", name: "Chainlink" },
-  ltc: { id: "litecoin", name: "Litecoin" },
-  trx: { id: "tron", name: "TRON" },
-  atom: { id: "cosmos", name: "Cosmos" },
-  near: { id: "near", name: "NEAR" },
-  apt: { id: "aptos", name: "Aptos" },
-  arb: { id: "arbitrum", name: "Arbitrum" },
-  op: { id: "optimism", name: "Optimism" },
-  ton: { id: "the-open-network", name: "Toncoin" },
-  sui: { id: "sui", name: "Sui" },
-  inj: { id: "injective-protocol", name: "Injective" },
-  fil: { id: "filecoin", name: "Filecoin" },
-  hbar: { id: "hedera-hashgraph", name: "Hedera" },
-  algo: { id: "algorand", name: "Algorand" },
-  vet: { id: "vechain", name: "VeChain" },
-  xlm: { id: "stellar", name: "Stellar" },
-  etc: { id: "ethereum-classic", name: "Ethereum Classic" },
-  shib: { id: "shiba-inu", name: "Shiba Inu" },
-  pepe: { id: "pepe", name: "Pepe" },
-  uni: { id: "uniswap", name: "Uniswap" },
-  aave: { id: "aave", name: "Aave" },
-  usdt: { id: "tether", name: "Tether" },
-  usdc: { id: "usd-coin", name: "USD Coin" },
-  dai: { id: "dai", name: "Dai" },
-  wbtc: { id: "wrapped-bitcoin", name: "Wrapped Bitcoin" },
-  steth: { id: "staked-ether", name: "Lido Staked Ether" },
-  cake: { id: "pancakeswap-token", name: "PancakeSwap" },
-  rndr: { id: "render-token", name: "Render" },
-  imx: { id: "immutable-x", name: "Immutable" },
-  grt: { id: "the-graph", name: "The Graph" },
-};
-
-const FIATS = {
-  idr: "Rupiah",
-  usd: "Dolar AS",
-  eur: "Euro",
-  sgd: "Dolar Singapura",
-  jpy: "Yen",
-  aud: "Dolar Australia",
-  gbp: "Pound",
-  myr: "Ringgit",
-};
-
-/* Aset yang ditampilkan di ticker berjalan. */
-const TICKER_SYMS = [
-  "btc", "eth", "sol", "bnb", "xrp", "ada", "doge",
-  "dot", "avax", "link", "ltc", "trx", "ton", "sui",
-];
-
-const PALETTE = {
-  ground: "#080B14",
-  panel: "#101426",
-  edge: "#164E63",
-  starlight: "#F1F5F9",
-  haze: "#94A3B8",
-  nova: "#22D3EE",
-  aqua: "#67E8F9",
-  btn: "#0891B2",
-  flare: "#FB7185",
-};
-
-/* ------------------------------------------------------------------ */
-/*  Utilitas                                                           */
-/* ------------------------------------------------------------------ */
-
-const isFiat = (sym) => Object.hasOwn(FIATS, sym);
-const isCoin = (sym) => Object.hasOwn(COINS, sym);
-const known = (sym) => isFiat(sym) || isCoin(sym);
-
-function labelOf(sym) {
-  if (isCoin(sym)) return COINS[sym].name;
-  if (isFiat(sym)) return FIATS[sym];
-  return sym.toUpperCase();
-}
-
-function formatAmount(n, sym) {
-  if (!Number.isFinite(n)) return "–";
-  if (isFiat(sym)) {
-    const digits = n >= 100 ? 0 : 2;
-    return n.toLocaleString("id-ID", {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    });
-  }
-  let digits = 8;
-  if (n >= 1000) digits = 2;
-  else if (n >= 1) digits = 4;
-  else if (n >= 0.01) digits = 6;
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: digits,
-  });
-}
-
-/* Parser cadangan – dipakai kalau pemanggilan model gagal. */
-function parseFallback(text) {
-  const cleaned = text
-    .toLowerCase()
-    .replace(/,(\d{3})/g, "$1")
-    .replace(/,/g, ".")
-    .trim();
-  const m = cleaned.match(
-    /(?:([\d.]+)\s*)?([a-z]{2,6})\s*(?:ke|to|jadi|in|->|→|\/)\s*([a-z]{2,6})/
-  );
-  if (!m) return null;
-  const amount = m[1] ? parseFloat(m[1]) : 1;
-  return { amount, from: m[2], to: m[3] };
-}
-
-/* Backend kita yang memegang API key. Di dev, Vite mem-proxy ke :8787. */
-async function parseWithModel(text) {
-  const res = await fetch("/api/parse", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  if (res.status === 429)
-    throw new Error("Terlalu banyak permintaan. Tunggu sebentar.");
-  if (!res.ok) throw new Error("parser tidak merespons");
-  return res.json();
-}
-
-async function fetchRates(fromSym, toSym) {
-  const ids = new Set(["bitcoin"]);
-  const vs = new Set(["usd"]);
-  for (const s of [fromSym, toSym]) {
-    if (isCoin(s)) ids.add(COINS[s].id);
-    else vs.add(s);
-  }
-  const url =
-    `/api/price?ids=${[...ids].join(",")}` +
-    `&vs=${[...vs].join(",")}`;
-
-  const res = await fetch(url);
-  if (res.status === 429)
-    throw new Error("Terlalu banyak permintaan ke CoinGecko. Tunggu sebentar.");
-  if (!res.ok) throw new Error(`Harga tidak bisa diambil (${res.status}).`);
-  const data = await res.json();
-
-  const btc = data.bitcoin;
-  if (!btc) throw new Error("Data harga tidak lengkap.");
-
-  // Semua aset dinilai dalam satuan BTC supaya satu rumus berlaku untuk
-  // kripto→kripto, kripto→fiat, maupun fiat→kripto.
-  const inBTC = (sym) => {
-    if (isCoin(sym)) {
-      const p = data[COINS[sym].id]?.usd;
-      if (!p) throw new Error(`Harga ${sym.toUpperCase()} tidak tersedia.`);
-      return p / btc.usd;
-    }
-    const p = btc[sym];
-    if (!p) throw new Error(`Kurs ${sym.toUpperCase()} tidak tersedia.`);
-    return 1 / p;
-  };
-
-  return {
-    rate: inBTC(fromSym) / inBTC(toSym),
-    updatedAt: btc.last_updated_at ? btc.last_updated_at * 1000 : Date.now(),
-  };
-}
-
-/* ---------- Riwayat konversi, disimpan di browser (bukan server) --- */
-
-const HISTORY_KEY = "panca-swap-history";
-const HISTORY_MAX = 5;
-
-function loadHistory() {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveHistory(list) {
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_MAX)));
-  } catch {
-    /* mode privat / storage penuh — riwayat cukup hidup di memori saja */
-  }
-}
-
-async function fetchTickerPrices() {
-  const ids = TICKER_SYMS.map((s) => COINS[s].id).join(",");
-  const res = await fetch(`/api/price?ids=${ids}&vs=usd`);
-  if (!res.ok) throw new Error("ticker fetch failed");
-  return res.json();
-}
-
-/* ------------------------------------------------------------------ */
-/*  Latar bintang bergerak (live wallpaper, CSS murni)                 */
-/* ------------------------------------------------------------------ */
-
-function Starfield() {
-  return (
-    <div aria-hidden="true" style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden" }}>
-      <div className="kk-galaxy-photo" />
-      <div className="kk-galaxy-scrim" />
-      <div className="kk-stars kk-stars-near" />
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Ikon token — logo asli dari CoinGecko kalau ada, kalau tidak       */
-/*  (mis. mata uang fiat, atau gambar gagal dimuat) jatuh ke monogram. */
-/* ------------------------------------------------------------------ */
-
-function CoinIcon({ sym, size = 28, t, iconUrl }) {
-  const [broken, setBroken] = useState(false);
-
-  if (iconUrl && !broken) {
-    return (
-      <img
-        src={iconUrl}
-        alt={sym.toUpperCase()}
-        width={size}
-        height={size}
-        style={{ borderRadius: "50%", flexShrink: 0, objectFit: "cover" }}
-        onError={() => setBroken(true)}
-      />
-    );
-  }
-
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        flexShrink: 0,
-        background: `linear-gradient(135deg, ${t.nova}, ${t.aqua})`,
-        color: t.ground,
-        fontWeight: 700,
-        fontSize: size * 0.42,
-      }}
-    >
-      {sym.slice(0, 1).toUpperCase()}
-    </span>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Ticker harga tak berhenti                                          */
-/* ------------------------------------------------------------------ */
-
-function PriceTicker({ t }) {
-  const [prices, setPrices] = useState(null);
-
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      try {
-        const data = await fetchTickerPrices();
-        if (alive) setPrices(data);
-      } catch {
-        /* diamkan; ticker cuma hiasan, jangan ganggu alur utama */
-      }
-    }
-    load();
-    const id = setInterval(load, 45_000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, []);
-
-  const items = TICKER_SYMS.map((sym) => {
-    const entry = prices?.[COINS[sym].id];
-    return { sym, price: entry?.usd, change: entry?.usd_24h_change };
-  });
-
-  const renderItems = (keyPrefix) =>
-    items.map(({ sym, price, change }) => {
-      const up = typeof change === "number" && change >= 0;
-      const down = typeof change === "number" && change < 0;
-      return (
-        <span
-          key={`${keyPrefix}-${sym}`}
-          style={{
-            display: "inline-flex",
-            alignItems: "baseline",
-            gap: 8,
-            padding: "0 22px",
-            fontSize: 13,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <span style={{ color: t.starlight, fontWeight: 600 }}>
-            {sym.toUpperCase()}
-          </span>
-          <span style={{ color: t.haze }}>
-            {price != null ? `$${formatAmount(price, "usd")}` : "…"}
-          </span>
-          {typeof change === "number" && (
-            <span style={{ color: up ? "#4ADE80" : down ? t.flare : t.haze }}>
-              {up ? "▲" : "▼"} {Math.abs(change).toFixed(1)}%
-            </span>
-          )}
-        </span>
-      );
-    });
-
-  return (
-    <div
-      className="kk-ticker-outer"
-      style={{
-        position: "relative",
-        zIndex: 1,
-        borderBottom: `1px solid ${t.edge}`,
-        background: "rgba(8,11,20,.55)",
-        backdropFilter: "blur(6px)",
-        overflow: "hidden",
-      }}
-    >
-      <div className="kk-ticker-track">
-        {renderItems("a")}
-        {renderItems("b")}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Tampilan                                                           */
-/* ------------------------------------------------------------------ */
-
-const SAMPLES = ["0.5 eth ke sol", "1 btc ke idr", "250 usdt ke eth", "10 sol ke doge"];
+const NOT_UNDERSTOOD =
+  'Kami belum memahami perintah tersebut. Coba tulis "250 USDT ke ETH" atau pilih aset secara manual.';
 
 export default function App() {
-  const [query, setQuery] = useState("");
+  const [amount, setAmount] = useState("");
+  const [amountError, setAmountError] = useState("");
+  const [fromSym, setFromSym] = useState("usdt");
+  const [toSym, setToSym] = useState("btc");
   const [status, setStatus] = useState("idle"); // idle | loading | done | error
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState("");
+  const [offline, setOffline] = useState(false);
+
+  const [query, setQuery] = useState("");
   const [icons, setIcons] = useState({});
   const [history, setHistory] = useState(() => loadHistory());
-  const [copied, setCopied] = useState(false);
-  const inputRef = useRef(null);
+  const [favorites, setFavorites] = useState(() => loadFavorites());
+  const [toast, setToast] = useState("");
+
+  const toastTimer = useRef(null);
+
+  /* Ikon token asli, diambil sekali untuk seluruh daftar aset. */
+  useEffect(() => {
+    const ids = Object.values(COINS)
+      .map((c) => c.id)
+      .join(",");
+    fetchIcons(ids)
+      .then(setIcons)
+      .catch(() => {});
+  }, []);
+
+  /* Sinkron dari URL (?from=&to=&amount=) supaya hasil bisa dibagikan. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const f = params.get("from")?.toLowerCase();
+    const t = params.get("to")?.toLowerCase();
+    const a = params.get("amount");
+    if (f && known(f)) setFromSym(f);
+    if (t && known(t)) setToSym(t);
+    if (a) setAmount(a);
+    if (f && t && known(f) && known(t)) {
+      convert({ from: f, to: t, amount: a || "1" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function showToast(text) {
+    clearTimeout(toastTimer.current);
+    setToast(text);
+    toastTimer.current = setTimeout(() => setToast(""), 2200);
+  }
 
   function pushHistory(entry) {
     setHistory((prev) => {
       const deduped = prev.filter(
         (h) => !(h.from === entry.from && h.to === entry.to && h.amount === entry.amount)
       );
-      const next = [entry, ...deduped].slice(0, HISTORY_MAX);
+      const next = [entry, ...deduped].slice(0, 5);
       saveHistory(next);
       return next;
     });
   }
 
-  function reuseHistory(h) {
-    const text = `${formatAmount(h.amount, h.from)} ${h.from} ke ${h.to}`;
-    setQuery(text);
-    run(text);
+  function updateUrl(from, to, amt) {
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set("from", from);
+      u.searchParams.set("to", to);
+      u.searchParams.set("amount", String(amt));
+      window.history.replaceState(null, "", u.toString());
+    } catch {
+      /* URL API tidak tersedia di lingkungan tertentu — abaikan, tidak fatal */
+    }
   }
 
-  function copyResult() {
-    if (!result) return;
-    const text = `${formatAmount(result.value, result.to)} ${result.to.toUpperCase()}`;
-    navigator.clipboard
-      ?.writeText(text)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      })
-      .catch(() => {});
+  /* Jalur konversi tunggal, dipakai oleh Converter, Quick Command,       */
+  /* riwayat, ticker, dan sinkronisasi URL — supaya hanya ada satu sumber */
+  /* kebenaran untuk hasil yang ditampilkan.                              */
+  async function convert(overrides = {}) {
+    const from = (overrides.from ?? fromSym).toLowerCase();
+    const to = (overrides.to ?? toSym).toLowerCase();
+    const rawAmount = overrides.amount ?? amount;
+    const amt = Number(String(rawAmount).trim().replace(",", "."));
+
+    if (!String(rawAmount).trim()) {
+      setAmountError("Masukkan jumlah terlebih dahulu.");
+      return;
+    }
+    if (!Number.isFinite(amt)) {
+      setAmountError("Masukkan angka yang valid.");
+      return;
+    }
+    if (amt <= 0) {
+      setAmountError("Jumlah harus lebih dari nol.");
+      return;
+    }
+    setAmountError("");
+    setStatus("loading");
+    setMessage("");
+    setOffline(false);
+    setFromSym(from);
+    setToSym(to);
+    setAmount(String(rawAmount));
+
+    try {
+      const { rate, updatedAt } = await fetchRates(from, to);
+      const value = amt * rate;
+      const res = { amount: amt, from, to, rate, value, updatedAt };
+      setResult(res);
+      setStatus("done");
+      pushHistory({ amount: amt, from, to, rate, value, at: Date.now() });
+      updateUrl(from, to, amt);
+    } catch (err) {
+      setStatus("error");
+      const isOffline = err.message?.includes("Failed to fetch");
+      setOffline(isOffline);
+      setMessage(
+        isOffline ? "Server tidak merespons. Periksa koneksi internet kamu." : err.message
+      );
+    }
   }
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    const ids = Object.values(COINS)
-      .map((c) => c.id)
-      .join(",");
-    fetch(`/api/icons?ids=${ids}`)
-      .then((r) => (r.ok ? r.json() : {}))
-      .then(setIcons)
-      .catch(() => {});
-  }, []);
-
-  async function run(text) {
+  async function runQuickCommand(text) {
     const q = text.trim();
     if (!q) return;
     setStatus("loading");
     setMessage("");
+    setOffline(false);
 
     let parsed = null;
     try {
@@ -416,517 +150,216 @@ export default function App() {
     }
     if (!parsed || parsed.error || !parsed.from || !parsed.to) {
       setStatus("error");
-      setMessage(
-        parsed?.error ||
-          'Belum terbaca. Coba format seperti "0.5 eth ke sol".'
-      );
+      setMessage(parsed?.error || NOT_UNDERSTOOD);
       return;
     }
 
     const from = String(parsed.from).toLowerCase();
     const to = String(parsed.to).toLowerCase();
-    const amount = Number(parsed.amount) || 1;
+    const amt = Number(parsed.amount) || 1;
 
     for (const s of [from, to]) {
       if (!known(s)) {
         setStatus("error");
-        setMessage(`${s.toUpperCase()} belum ada di daftar aset.`);
+        setMessage(`${s.toUpperCase()} belum ada di daftar aset yang didukung.`);
         return;
       }
     }
 
-    try {
-      const { rate, updatedAt } = await fetchRates(from, to);
-      const value = amount * rate;
-      setResult({ amount, from, to, rate, value, updatedAt });
-      pushHistory({ amount, from, to, rate, value, at: Date.now() });
-      setStatus("done");
-    } catch (err) {
-      setStatus("error");
-      setMessage(
-        err.message?.includes("Failed to fetch")
-          ? "Server tidak merespons. Cek apakah layanan backend berjalan."
-          : err.message
-      );
+    await convert({ amount: amt, from, to });
+  }
+
+  function swapDirection() {
+    if (result) {
+      convert({ amount: result.value, from: result.to, to: result.from });
+    } else {
+      setFromSym(toSym);
+      setToSym(fromSym);
     }
   }
 
-  async function swapDirection() {
+  function reuseHistory(h) {
+    convert({ amount: h.amount, from: h.from, to: h.to });
+  }
+
+  function clearHistory() {
+    setHistory([]);
+    saveHistory([]);
+  }
+
+  function onTickerSelect(sym) {
+    setToSym(sym);
+    document.getElementById("converter")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (amount && Number(amount) > 0) {
+      convert({ to: sym });
+    }
+  }
+
+  function copyResult() {
     if (!result) return;
-    const newFrom = result.to;
-    const newTo = result.from;
-    const newAmount = result.value;
-
-    setStatus("loading");
-    setQuery(`${formatAmount(newAmount, newFrom)} ${newFrom} ke ${newTo}`);
-
-    try {
-      const { rate, updatedAt } = await fetchRates(newFrom, newTo);
-      const newValue = newAmount * rate;
-      setResult({ amount: newAmount, from: newFrom, to: newTo, rate, value: newValue, updatedAt });
-      pushHistory({ amount: newAmount, from: newFrom, to: newTo, rate, value: newValue, at: Date.now() });
-      setStatus("done");
-    } catch (err) {
-      setStatus("error");
-      setMessage(
-        err.message?.includes("Failed to fetch")
-          ? "Server tidak merespons. Cek apakah layanan backend berjalan."
-          : err.message
-      );
-    }
+    const text = `${formatAmount(result.value, result.to)} ${result.to.toUpperCase()}`;
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => showToast("Hasil disalin ke clipboard"))
+      .catch(() => {});
   }
 
-  const t = PALETTE;
+  const isFav = favorites.some((f) => f.from === fromSym && f.to === toSym);
+  function toggleFavorite() {
+    setFavorites((prev) => {
+      const exists = prev.some((f) => f.from === fromSym && f.to === toSym);
+      const next = exists
+        ? prev.filter((f) => !(f.from === fromSym && f.to === toSym))
+        : [{ from: fromSym, to: toSym }, ...prev].slice(0, 8);
+      saveFavorites(next);
+      return next;
+    });
+    showToast(isFav ? "Dihapus dari favorit" : "Ditambahkan ke favorit");
+  }
+
+  function shareResult() {
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set("from", fromSym);
+      u.searchParams.set("to", toSym);
+      if (amount) u.searchParams.set("amount", amount);
+      navigator.clipboard
+        ?.writeText(u.toString())
+        .then(() => showToast("Tautan hasil disalin, siap dibagikan"))
+        .catch(() => {});
+    } catch {
+      /* tidak fatal kalau URL API tidak tersedia */
+    }
+  }
 
   return (
-    <div
-      style={{
-        position: "relative",
-        minHeight: "100%",
-        background: t.ground,
-        color: t.starlight,
-        fontFamily: "'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif",
-      }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
-        .kk-input::placeholder { color: ${t.haze}; opacity: .7; }
-        .kk-input:focus { outline: 2px solid ${t.nova}; outline-offset: 2px; }
-        .kk-chip:focus-visible { outline: 2px solid ${t.nova}; outline-offset: 2px; }
-        .kk-chip:hover { border-color: ${t.aqua}; color: ${t.starlight}; }
-        .kk-btn:hover:not(:disabled) { background: ${t.nova}; }
-        .kk-refresh:hover { color: ${t.aqua}; }
-        .kk-swap-btn:hover:not(:disabled) { color: ${t.nova}; border-color: ${t.nova}; transform: rotate(180deg); }
-        @keyframes kk-pulse { 0%,100% { opacity: .35 } 50% { opacity: 1 } }
-
-        /* --- live wallpaper: foto galaksi asli (NASA/Hubble, domain publik), statis --- */
-        .kk-galaxy-photo {
-          position: absolute; inset: -5%;
-          background: url('/space-bg.jpg') center / cover no-repeat;
-        }
-        .kk-galaxy-scrim {
-          position: absolute; inset: 0;
-          background:
-            linear-gradient(180deg, rgba(8,11,20,.55) 0%, rgba(8,11,20,.75) 45%, rgba(8,11,20,.92) 100%);
-        }
-
-        .kk-stars {
-          position: absolute; inset: -50%;
-          background-repeat: repeat;
-          background-image:
-            radial-gradient(2.5px 2.5px at 40px 60px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%),
-            radial-gradient(2px 2px at 120px 20px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%),
-            radial-gradient(3.5px 3.5px at 200px 140px, #fff 0%, rgba(255,255,255,.6) 40%, transparent 75%),
-            radial-gradient(2px 2px at 260px 80px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%),
-            radial-gradient(3.5px 3.5px at 320px 200px, #fff 0%, rgba(255,255,255,.6) 40%, transparent 75%),
-            radial-gradient(2.5px 2.5px at 20px 190px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%),
-            radial-gradient(2px 2px at 160px 240px, #fff 0%, rgba(255,255,255,.5) 45%, transparent 75%);
-          animation: kk-twinkle 4s ease-in-out infinite alternate;
-        }
-        .kk-stars-near {
-          background-size: 180px 140px;
-          opacity: .85;
-          transform-origin: center center;
-          animation: kk-twinkle 3s ease-in-out infinite alternate, kk-star-spin 220s linear infinite;
-        }
-        @keyframes kk-twinkle { from { opacity: .25; } to { opacity: .9; } }
-        @keyframes kk-star-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        @media (prefers-reduced-motion: reduce) {
-          .kk-galaxy-photo, .kk-stars { animation: none !important; }
-        }
-
-        /* --- ticker tak berhenti --- */
-        .kk-ticker-track {
-          display: inline-flex;
-          width: max-content;
-          padding: 10px 0;
-          animation: kk-ticker-scroll 45s linear infinite;
-        }
-        .kk-ticker-outer:hover .kk-ticker-track { animation-play-state: paused; }
-        @keyframes kk-ticker-scroll {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .kk-ticker-track { animation: none; }
-        }
-      `}</style>
-
+    <div className="psa-app">
       <Starfield />
-      <PriceTicker t={t} />
+      <div className="psa-content">
+        <Header />
+        <MarketTicker onSelect={onTickerSelect} />
 
-      <div style={{ position: "relative", zIndex: 1, padding: "40px 20px 56px" }}>
-        <div style={{ maxWidth: 620, margin: "0 auto" }}>
-          <header style={{ marginBottom: 32 }}>
-            <h1
-              style={{
-                fontSize: "clamp(22px, 5vw, 30px)",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                margin: 0,
-                backgroundImage: `linear-gradient(90deg, ${t.nova}, ${t.aqua})`,
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                color: "transparent",
-                WebkitTextStroke: `1.25px ${t.ground}`,
-                textShadow: `0 0 26px ${t.nova}77`,
-              }}
-            >
-              PANCA SWAP AGENT
-            </h1>
-          </header>
-
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-            <input
-              ref={inputRef}
-              className="kk-input"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && run(query)}
-              placeholder="0.5 eth ke sol"
-              style={{
-                flex: 1,
-                background: t.panel,
-                border: `1px solid ${t.edge}`,
-                borderRadius: 6,
-                color: t.starlight,
-                fontSize: 16,
-                fontFamily: "inherit",
-                padding: "13px 14px",
-              }}
-            />
-            <button
-              className="kk-btn"
-              onClick={() => run(query)}
-              disabled={status === "loading"}
-              style={{
-                background: t.btn,
-                border: "none",
-                borderRadius: 6,
-                color: t.starlight,
-                cursor: status === "loading" ? "wait" : "pointer",
-                fontFamily: "inherit",
-                fontSize: 15,
-                fontWeight: 600,
-                padding: "0 20px",
-                transition: "background .15s",
-              }}
-            >
-              Hitung
-            </button>
+        <main className="psa-main">
+          <div className="psa-hero">
+            <h1 className="psa-h1">Panca Swap Agent</h1>
+            <p className="psa-subtitle">
+              Crypto converter — hitung konversi harga crypto secara real-time dengan input bahasa
+              natural atau pilih aset secara manual.
+            </p>
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 30 }}>
-            {SAMPLES.map((s) => (
-              <button
-                key={s}
-                className="kk-chip"
-                onClick={() => {
-                  setQuery(s);
-                  run(s);
-                }}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${t.edge}`,
-                  borderRadius: 20,
-                  color: t.haze,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  padding: "5px 12px",
-                  transition: "border-color .15s, color .15s",
-                }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-
-          {/* idle / loading / error: papan pesan sederhana */}
-          {status !== "done" && (
-            <div
-              style={{
-                background: t.panel,
-                border: `1px solid ${t.edge}`,
-                borderRadius: 12,
-                minHeight: 190,
-                padding: "26px 24px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-              }}
-            >
-              {status === "idle" && (
-                <p style={{ color: t.haze, fontSize: 15, margin: 0 }}>
-                  Hasil konversi muncul di sini.
-                </p>
-              )}
-
-              {status === "loading" && (
-                <p
-                  style={{
-                    color: t.haze,
-                    fontSize: 15,
-                    margin: 0,
-                    animation: "kk-pulse 1.2s ease-in-out infinite",
-                  }}
-                >
-                  Mengambil harga…
-                </p>
-              )}
-
-              {status === "error" && (
-                <div>
-                  <p style={{ color: t.flare, fontSize: 15, margin: 0, fontWeight: 500 }}>
-                    {message}
-                  </p>
-                  <p style={{ color: t.haze, fontSize: 14, margin: "8px 0 0" }}>
-                    Aset yang tersedia: {Object.keys(COINS).length} kripto dan{" "}
-                    {Object.keys(FIATS).length} mata uang.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* done: kartu swap ala Dari / Ke */}
-          {status === "done" && result && (
+          <div className="psa-stack">
             <div>
-              <div
-                style={{
-                  background: t.panel,
-                  border: `1px solid ${t.nova}`,
-                  borderRadius: 12,
-                  padding: "16px 18px",
-                  boxShadow: `0 0 0 1px ${t.nova}22`,
+              <Converter
+                amount={amount}
+                onAmountChange={(v) => {
+                  setAmount(v);
+                  if (amountError) setAmountError("");
                 }}
-              >
-                <div style={{ fontSize: 13, color: t.haze, marginBottom: 10 }}>Dari</div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <span
-                    style={{
-                      fontSize: "clamp(22px, 6vw, 28px)",
-                      fontWeight: 600,
-                      color: t.starlight,
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {formatAmount(result.amount, result.from)}
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    <CoinIcon sym={result.from} t={t} iconUrl={icons[COINS[result.from]?.id]} />
-                    <span style={{ fontWeight: 600 }}>{result.from.toUpperCase()}</span>
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <button
-                  className="kk-swap-btn"
-                  onClick={swapDirection}
-                  disabled={status === "loading"}
-                  title="Balik arah tukar"
-                  aria-label="Balik arah tukar"
+                fromSym={fromSym}
+                onFromChange={setFromSym}
+                toSym={toSym}
+                onToChange={setToSym}
+                onSwap={swapDirection}
+                onConvert={() => convert()}
+                status={status}
+                result={result}
+                amountError={amountError}
+                icons={icons}
+              />
+              <PriceMeta
+                status={status}
+                result={result}
+                message={message}
+                offline={offline}
+                fromSym={fromSym}
+                toSym={toSym}
+                onRefresh={() => convert()}
+              />
+              {status === "done" && result && (
+                <div
                   style={{
-                    marginTop: -16,
-                    marginBottom: -16,
-                    zIndex: 2,
-                    position: "relative",
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: t.ground,
-                    border: `1px solid ${t.edge}`,
                     display: "flex",
-                    alignItems: "center",
+                    gap: 8,
                     justifyContent: "center",
-                    color: t.haze,
-                    fontSize: 16,
-                    cursor: status === "loading" ? "wait" : "pointer",
-                    padding: 0,
-                    transition: "color .15s, border-color .15s, transform .15s",
+                    padding: "0 var(--space-5) var(--space-5)",
                   }}
                 >
-                  ⇅
-                </button>
-              </div>
-
-              <div
-                style={{
-                  background: t.panel,
-                  border: `1px solid ${t.edge}`,
-                  borderRadius: 12,
-                  padding: "16px 18px",
-                }}
-              >
-                <div style={{ fontSize: 13, color: t.haze, marginBottom: 10 }}>Ke ≈</div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <span
-                    style={{
-                      fontSize: "clamp(22px, 6vw, 28px)",
-                      fontWeight: 600,
-                      color: t.starlight,
-                      wordBreak: "break-word",
-                    }}
+                  <button className="psa-icon-btn" onClick={copyResult} title="Salin hasil" aria-label="Salin hasil">
+                    ⧉ <span style={{ fontSize: 12, marginLeft: 4 }}>Salin</span>
+                  </button>
+                  <button
+                    className="psa-icon-btn"
+                    onClick={shareResult}
+                    title="Bagikan hasil"
+                    aria-label="Bagikan hasil"
                   >
-                    {formatAmount(result.value, result.to)}
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    <CoinIcon sym={result.to} t={t} iconUrl={icons[COINS[result.to]?.id]} />
-                    <span style={{ fontWeight: 600 }}>{result.to.toUpperCase()}</span>
+                    ↗ <span style={{ fontSize: 12, marginLeft: 4 }}>Bagikan</span>
+                  </button>
+                  <button
+                    className="psa-icon-btn"
+                    onClick={toggleFavorite}
+                    title={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
+                    aria-label={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
+                    style={isFav ? { color: "var(--warning)" } : undefined}
+                  >
+                    {isFav ? "★" : "☆"} <span style={{ fontSize: 12, marginLeft: 4 }}>Favorit</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <QuickCommand query={query} onQueryChange={setQuery} onRun={runQuickCommand} status={status} />
+
+            {favorites.length > 0 && (
+              <div className="psa-card psa-quick">
+                <div className="psa-quick-head">
+                  <span className="psa-quick-title">Pasangan favorit</span>
+                </div>
+                <div className="psa-chip-row">
+                  {favorites.map((f) => (
                     <button
-                      className="kk-refresh"
-                      onClick={copyResult}
-                      title={copied ? "Tersalin!" : "Salin hasil"}
-                      aria-label="Salin hasil"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: copied ? "#4ADE80" : t.haze,
-                        cursor: "pointer",
-                        fontSize: 15,
-                        padding: 2,
-                        lineHeight: 1,
-                        transition: "color .15s",
-                      }}
+                      key={`${f.from}-${f.to}`}
+                      className="psa-chip"
+                      onClick={() => convert({ from: f.from, to: f.to, amount: amount || "1" })}
                     >
-                      {copied ? "✓" : "⧉"}
+                      {f.from.toUpperCase()} → {f.to.toUpperCase()}
                     </button>
-                  </span>
+                  ))}
                 </div>
               </div>
+            )}
 
-              <div
-                style={{
-                  textAlign: "center",
-                  marginTop: 18,
-                  fontSize: 13,
-                  color: t.haze,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                <span>
-                  1 {result.from.toUpperCase()} ={" "}
-                  <span style={{ color: t.starlight, fontWeight: 500 }}>
-                    {formatAmount(result.rate, result.to)}
-                  </span>{" "}
-                  {result.to.toUpperCase()}
-                </span>
-                <button
-                  className="kk-refresh"
-                  onClick={() => run(query)}
-                  title="Segarkan harga"
-                  aria-label="Segarkan harga"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: t.nova,
-                    cursor: "pointer",
-                    fontSize: 15,
-                    padding: 2,
-                    transition: "color .15s",
-                  }}
-                >
-                  ⟳
-                </button>
-              </div>
-              <p style={{ textAlign: "center", margin: "4px 0 0", fontSize: 12, color: t.haze }}>
-                {labelOf(result.from)} ke {labelOf(result.to)}, tercatat{" "}
-                {new Date(result.updatedAt).toLocaleTimeString("id-ID", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+            <HistoryPanel history={history} onReuse={reuseHistory} onClear={clearHistory} />
+
+            <section id="about" className="psa-card" style={{ padding: "var(--space-5)" }}>
+              <h2 style={{ fontSize: 16, margin: "0 0 8px" }}>Tentang Panca Swap Agent</h2>
+              <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7 }}>
+                Panca Swap Agent adalah alat bantu hitung konversi harga crypto dan mata uang, memakai
+                harga real-time dari CoinGecko dan parsing bahasa natural dari model AI (Groq). Aplikasi
+                ini murni kalkulator estimasi — tidak menyimpan dana, tidak terhubung ke dompet
+                (wallet), dan tidak melakukan transaksi sungguhan apa pun.
               </p>
-            </div>
-          )}
+            </section>
+          </div>
+        </main>
 
-          {history.length > 0 && (
-            <div style={{ marginTop: 22 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: t.haze,
-                  marginBottom: 8,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
-                Riwayat Terakhir
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {history.map((h, i) => (
-                  <button
-                    key={`${h.from}-${h.to}-${h.amount}-${i}`}
-                    onClick={() => reuseHistory(h)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      background: t.panel,
-                      border: `1px solid ${t.edge}`,
-                      borderRadius: 8,
-                      padding: "10px 14px",
-                      color: t.starlight,
-                      fontFamily: "inherit",
-                      fontSize: 13,
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <span style={{ color: t.haze }}>
-                      {formatAmount(h.amount, h.from)} {h.from.toUpperCase()} →{" "}
-                      {h.to.toUpperCase()}
-                    </span>
-                    <span style={{ color: t.nova, fontWeight: 600, flexShrink: 0 }}>
-                      {formatAmount(h.value, h.to)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <p
-            style={{
-              color: t.haze,
-              fontSize: 13,
-              lineHeight: 1.6,
-              margin: "18px 0 0",
-              maxWidth: "62ch",
-            }}
-          >
-            Angka di atas adalah harga tengah pasar. Kalau kamu benar-benar
-            menukar aset di exchange atau DEX, hasilnya akan lebih kecil karena
-            ada spread, biaya jaringan, dan slippage.
+        <footer className="psa-footer">
+          <p>
+            Panca Swap Agent · Harga oleh{" "}
+            <a href="https://www.coingecko.com" target="_blank" rel="noopener">
+              CoinGecko
+            </a>{" "}
+            · Parsing bahasa oleh{" "}
+            <a href="https://groq.com" target="_blank" rel="noopener">
+              Groq
+            </a>
           </p>
-        </div>
+        </footer>
       </div>
 
-      <footer
-        style={{
-          position: "relative",
-          zIndex: 1,
-          borderTop: `1px solid ${t.edge}`,
-          padding: "18px 20px",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ margin: 0, fontSize: 12, color: t.haze }}>
-          Panca Swap Agent · Harga oleh{" "}
-          <a href="https://www.coingecko.com" target="_blank" rel="noopener" style={{ color: t.aqua }}>
-            CoinGecko
-          </a>{" "}
-          · Parsing bahasa oleh{" "}
-          <a href="https://groq.com" target="_blank" rel="noopener" style={{ color: t.aqua }}>
-            Groq
-          </a>
-        </p>
-      </footer>
+      <HelpBot />
+      <Toast message={toast} />
     </div>
   );
 }
