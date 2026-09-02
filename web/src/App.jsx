@@ -83,6 +83,20 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Link hasil konversi yang dibagikan (?from=&to=&amount=) kadang       */
+  /* kebawa hash lama dari navigasi sebelumnya (mis. "#about" bekas klik  */
+  /* menu About) — browser otomatis scroll ke situ duluan sebelum React   */
+  /* sempat render, jadi kalkulator ketutup. Hash TANPA query itu tetap   */
+  /* navigasi yang sah (link langsung ke section tertentu) dan dibiarkan; */
+  /* yang dibersihkan cuma kombinasi query+hash yang jelas nyasar.        */
+  useEffect(() => {
+    const hasQuery = new URLSearchParams(window.location.search).get("from");
+    if (window.location.hash && hasQuery) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   /* Maksimal 3 toast sekaligus, tiap satu hilang sendiri lewat timer-nya */
   /* masing-masing (bukan satu timer global) — jadi toast baru tidak      */
   /* memotong umur toast lain yang masih tampil.                          */
@@ -116,6 +130,10 @@ export default function App() {
       u.searchParams.set("from", from);
       u.searchParams.set("to", to);
       u.searchParams.set("amount", String(amt));
+      // Hasil konversi itu tentang kalkulator, bukan tentang bagian halaman
+      // manapun yang kebetulan lagi ke-scroll — jadi hash-nya disamakan ke
+      // #converter, bukan mempertahankan hash lama (mis. bekas klik "About").
+      u.hash = "converter";
       window.history.replaceState(null, "", u.toString());
     } catch {
       /* URL API tidak tersedia di lingkungan tertentu — abaikan, tidak fatal */
@@ -295,52 +313,59 @@ export default function App() {
             </div>
 
             <div className="psa-stack">
-              <div className="psa-converter-shell" id="converter">
-                <Converter
-                  amount={amount}
-                  onAmountChange={(v) => {
-                    setAmount(v);
-                    if (amountError) setAmountError("");
-                  }}
-                  fromSym={fromSym}
-                  onFromChange={setFromSym}
-                  toSym={toSym}
-                  onToChange={setToSym}
-                  onSwap={swapDirection}
-                  onConvert={() => convert()}
-                  status={status}
-                  result={result}
-                  amountError={amountError}
-                  icons={icons}
-                  query={query}
-                  onQueryChange={setQuery}
-                  onRunQuickCommand={runQuickCommand}
-                  message={message}
-                  offline={offline}
-                  onRefresh={() => convert()}
-                  onCopyResult={copyResult}
-                  justCopied={justCopied}
-                  onShare={shareResult}
-                  onToggleFavorite={toggleFavorite}
-                  isFavorite={isFav}
-                />
+              {/* Kalkulator: sengaja tetap sempit (~720px) walau stack di   */}
+              {/* sekitarnya sekarang selebar shell — .psa-narrow yang jaga  */}
+              {/* lebarnya, bukan .psa-stack lagi (lihat catatan di CSS).    */}
+              <div className="psa-narrow">
+                <div className="psa-converter-shell" id="converter">
+                  <Converter
+                    amount={amount}
+                    onAmountChange={(v) => {
+                      setAmount(v);
+                      if (amountError) setAmountError("");
+                    }}
+                    fromSym={fromSym}
+                    onFromChange={setFromSym}
+                    toSym={toSym}
+                    onToChange={setToSym}
+                    onSwap={swapDirection}
+                    onConvert={() => convert()}
+                    status={status}
+                    result={result}
+                    amountError={amountError}
+                    icons={icons}
+                    query={query}
+                    onQueryChange={setQuery}
+                    onRunQuickCommand={runQuickCommand}
+                    message={message}
+                    offline={offline}
+                    onRefresh={() => convert()}
+                    onCopyResult={copyResult}
+                    justCopied={justCopied}
+                    onShare={shareResult}
+                    onToggleFavorite={toggleFavorite}
+                    isFavorite={isFav}
+                  />
+                </div>
               </div>
 
               {favorites.length > 0 && (
-                <div className="psa-card psa-quick">
-                  <div className="psa-quick-head">
-                    <h2 className="psa-quick-title">Pasangan favorit</h2>
-                  </div>
-                  <div className="psa-chip-row">
-                    {favorites.map((f) => (
-                      <button
-                        key={`${f.from}-${f.to}`}
-                        className="psa-chip"
-                        onClick={() => convert({ from: f.from, to: f.to, amount: amount || "1" })}
-                      >
-                        {f.from.toUpperCase()} → {f.to.toUpperCase()}
-                      </button>
-                    ))}
+                <div className="psa-narrow">
+                  <div className="psa-card psa-quick">
+                    <div className="psa-quick-head">
+                      <h2 className="psa-quick-title">Pasangan favorit</h2>
+                    </div>
+                    <div className="psa-chip-row">
+                      {favorites.map((f) => (
+                        <button
+                          key={`${f.from}-${f.to}`}
+                          className="psa-chip"
+                          onClick={() => convert({ from: f.from, to: f.to, amount: amount || "1" })}
+                        >
+                          {f.from.toUpperCase()} → {f.to.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -359,20 +384,22 @@ export default function App() {
 
               <WhyPancaSwap />
 
-              <section id="about" className="psa-card psa-about">
-                <h2 className="psa-about-title">Tentang Panca Swap</h2>
-                <p className="psa-about-text">
-                  Ini sebenarnya cuma kalkulator, bukan exchange beneran. Ketik kalimat biasa kayak
-                  "250 USDT ke ETH" atau pilih sendiri asetnya, nanti dihitungin pakai harga dari
-                  CoinGecko. Nggak ada dompet yang tersambung, nggak ada dana yang disimpan, dan
-                  nggak ada transaksi asli yang jalan — murni buat lihat-lihat kurs aja.
-                </p>
-                <p className="psa-about-privacy">
-                  Soal data: riwayat, favorit, dan pasangan aset terakhir kamu cuma disimpan di
-                  browser kamu sendiri (localStorage), bukan di server. Nggak ada analytics atau
-                  pelacakan apa pun di situs ini.
-                </p>
-              </section>
+              <div className="psa-narrow">
+                <section id="tentang" className="psa-card psa-about">
+                  <h2 className="psa-about-title">Tentang Panca Swap</h2>
+                  <p className="psa-about-text">
+                    Ini sebenarnya cuma kalkulator, bukan exchange beneran. Ketik kalimat biasa kayak
+                    "250 USDT ke ETH" atau pilih sendiri asetnya, nanti dihitungin pakai harga dari
+                    CoinGecko. Nggak ada dompet yang tersambung, nggak ada dana yang disimpan, dan
+                    nggak ada transaksi asli yang jalan — murni buat lihat-lihat kurs aja.
+                  </p>
+                  <p className="psa-about-privacy">
+                    Soal data: riwayat, favorit, dan pasangan aset terakhir kamu cuma disimpan di
+                    browser kamu sendiri (localStorage), bukan di server. Nggak ada analytics atau
+                    pelacakan apa pun di situs ini.
+                  </p>
+                </section>
+              </div>
             </div>
           </div>
         </main>
@@ -476,7 +503,7 @@ const WHY_ITEMS = [
 
 function WhyPancaSwap() {
   return (
-    <section className="psa-section" aria-labelledby="psa-why-title">
+    <section id="about" className="psa-section" aria-labelledby="psa-why-title">
       <h2 id="psa-why-title" className="psa-section-title">
         Kenapa Panca Swap
       </h2>

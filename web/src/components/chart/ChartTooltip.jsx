@@ -1,4 +1,4 @@
-import { formatAmount, formatChartTime } from "../../lib/format.js";
+import { displayAmount, formatChartTime } from "../../lib/format.js";
 
 /* Baris info OHLC/harga — SELALU tampil (bukan cuma muncul pas hover),  */
 /* isinya berganti mengikuti crosshair. Ini yang bikin info OHLC bisa    */
@@ -13,18 +13,18 @@ export default function ChartTooltip({ type, point, quoteSym }) {
       <div className="psa-chart-ohlc" aria-live="polite">
         <span className="psa-chart-ohlc-time">{formatChartTime(point.time)}</span>
         <span>
-          O <strong>{formatAmount(point.open, quoteSym)}</strong>
+          O <strong>{displayAmount(point.open, quoteSym)}</strong>
         </span>
         <span>
-          H <strong>{formatAmount(point.high, quoteSym)}</strong>
+          H <strong>{displayAmount(point.high, quoteSym)}</strong>
         </span>
         <span>
-          L <strong>{formatAmount(point.low, quoteSym)}</strong>
+          L <strong>{displayAmount(point.low, quoteSym)}</strong>
         </span>
         <span>
           C{" "}
           <strong className={up ? "psa-ticker-up" : "psa-ticker-down"}>
-            {formatAmount(point.close, quoteSym)}
+            {displayAmount(point.close, quoteSym)}
           </strong>
         </span>
       </div>
@@ -35,7 +35,7 @@ export default function ChartTooltip({ type, point, quoteSym }) {
     <div className="psa-chart-ohlc" aria-live="polite">
       <span className="psa-chart-ohlc-time">{formatChartTime(point.time)}</span>
       <span>
-        Harga <strong>{formatAmount(point.price, quoteSym)}</strong>
+        Harga <strong>{displayAmount(point.price, quoteSym)}</strong>
       </span>
     </div>
   );

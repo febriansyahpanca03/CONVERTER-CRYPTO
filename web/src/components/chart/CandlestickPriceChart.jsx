@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
 import { createChart, CandlestickSeries } from "lightweight-charts";
 import { toCandleSeriesData } from "../../lib/chart.js";
+import { formatCompactAmount } from "../../lib/format.js";
 
 /* Mode Candle: bullish emerald, bearish coral — sesuai token warna      */
 /* success/danger yang sudah dipakai di seluruh situs (bukan warna baru). */
-export default function CandlestickPriceChart({ candles, height, onCrosshairMove }) {
+export default function CandlestickPriceChart({ candles, height, quoteSym, onCrosshairMove }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
@@ -15,6 +16,7 @@ export default function CandlestickPriceChart({ candles, height, onCrosshairMove
     if (!containerRef.current) return undefined;
 
     const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
       height,
       layout: {
         background: { color: "transparent" },
@@ -22,11 +24,14 @@ export default function CandlestickPriceChart({ candles, height, onCrosshairMove
         fontFamily: "inherit",
         fontSize: 11,
       },
+      // Label sumbu harga dipersingkat (mis. "Rp1,39 M") biar nggak tabrakan
+      // di kartu yang sempit — harga utama/tooltip di React tetap nilai penuh.
+      localization: { priceFormatter: (p) => formatCompactAmount(p, quoteSym) },
       grid: {
         vertLines: { color: "rgba(255,255,255,0.05)" },
         horzLines: { color: "rgba(255,255,255,0.05)" },
       },
-      rightPriceScale: { borderColor: "rgba(255,255,255,0.08)" },
+      rightPriceScale: { borderColor: "rgba(255,255,255,0.08)", minimumWidth: 56 },
       timeScale: { borderColor: "rgba(255,255,255,0.08)", timeVisible: true, secondsVisible: false },
       crosshair: { vertLine: { labelBackgroundColor: "#0c0e19" }, horzLine: { labelBackgroundColor: "#0c0e19" } },
       handleScroll: false,
@@ -69,6 +74,12 @@ export default function CandlestickPriceChart({ candles, height, onCrosshairMove
     seriesRef.current.setData(toCandleSeriesData(candles));
     chartRef.current?.timeScale().fitContent();
   }, [candles]);
+
+  useEffect(() => {
+    chartRef.current?.applyOptions({
+      localization: { priceFormatter: (p) => formatCompactAmount(p, quoteSym) },
+    });
+  }, [quoteSym]);
 
   return <div ref={containerRef} className="psa-chart-canvas" />;
 }

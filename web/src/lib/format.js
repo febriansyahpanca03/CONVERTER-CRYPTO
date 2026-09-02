@@ -46,6 +46,22 @@ export function displayAmount(n, sym) {
   return `${prefix}${formatAmount(n, sym)}`;
 }
 
+/* Angka ringkas buat axis chart (mis. "Rp1,39 M" bukan "1390000000,00") */
+/* — cuma dipakai buat label sumbu harga, BUKAN buat harga utama/tooltip */
+/* yang tetap harus nilai penuh lewat formatAmount/displayAmount biasa.  */
+export function formatCompactAmount(n, sym) {
+  if (!Number.isFinite(n)) return "–";
+  const abs = Math.abs(n);
+  const prefix = PREFIX[sym] || "";
+  const suffixed = (divisor, suffix) =>
+    `${prefix}${(n / divisor).toLocaleString("id-ID", { maximumFractionDigits: 2 })} ${suffix}`;
+  if (abs >= 1e12) return suffixed(1e12, "T"); // triliun
+  if (abs >= 1e9) return suffixed(1e9, "M"); // miliar
+  if (abs >= 1e6) return suffixed(1e6, "Jt"); // juta
+  if (abs >= 1e3) return suffixed(1e3, "Rb"); // ribu
+  return displayAmount(n, sym);
+}
+
 /* "8 detik lalu" / "3 menit lalu" / "2 jam lalu" — dihitung dari epoch ms */
 export function relativeTime(ts, now = Date.now()) {
   if (!ts) return "–";

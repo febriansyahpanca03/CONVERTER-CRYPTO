@@ -9,7 +9,7 @@ import ChartLoadingState from "./ChartLoadingState.jsx";
 import ChartErrorState from "./ChartErrorState.jsx";
 import ChartEmptyState from "./ChartEmptyState.jsx";
 import { IconClose } from "../Icons.jsx";
-import { formatAmount, relativeTime } from "../../lib/format.js";
+import { displayAmount, relativeTime } from "../../lib/format.js";
 import { PERIOD_LABEL } from "../../lib/chart.js";
 
 const DETAIL_HEIGHT = 380;
@@ -109,9 +109,9 @@ export default function ChartDetailModal({
           <span className="psa-insight-pair">{pair.pairLabel}</span>
           {stats && (
             <>
-              <span className="psa-insight-price">{formatAmount(stats.last, pair.vsCurrency)}</span>
+              <span className="psa-insight-price">{displayAmount(stats.last, pair.vsCurrency)}</span>
               <span className={`psa-insight-change ${stats.changeAbs >= 0 ? "psa-ticker-up" : "psa-ticker-down"}`}>
-                {stats.changeAbs >= 0 ? "▲" : "▼"} {formatAmount(Math.abs(stats.changeAbs), pair.vsCurrency)} (
+                {stats.changeAbs >= 0 ? "▲" : "▼"} {displayAmount(Math.abs(stats.changeAbs), pair.vsCurrency)} (
                 {stats.changePct >= 0 ? "+" : "−"}
                 {Math.abs(stats.changePct).toFixed(2)}% · {period})
               </span>
@@ -136,9 +136,19 @@ export default function ChartDetailModal({
           {data && seriesLength > 0 && (
             <div className={status === "loading" ? "psa-chart-dim" : ""}>
               {chartType === "line" ? (
-                <LinePriceChart points={data.points} height={DETAIL_HEIGHT} onCrosshairMove={onHoverPoint} />
+                <LinePriceChart
+                  points={data.points}
+                  height={DETAIL_HEIGHT}
+                  quoteSym={pair.vsCurrency}
+                  onCrosshairMove={onHoverPoint}
+                />
               ) : (
-                <CandlestickPriceChart candles={data.candles} height={DETAIL_HEIGHT} onCrosshairMove={onHoverPoint} />
+                <CandlestickPriceChart
+                  candles={data.candles}
+                  height={DETAIL_HEIGHT}
+                  quoteSym={pair.vsCurrency}
+                  onCrosshairMove={onHoverPoint}
+                />
               )}
             </div>
           )}
@@ -148,10 +158,10 @@ export default function ChartDetailModal({
 
         <div className="psa-insight-hilo-row">
           <span>
-            Tinggi ({period}) <strong>{stats ? formatAmount(stats.high, pair.vsCurrency) : "—"}</strong>
+            Tinggi ({period}) <strong>{stats ? displayAmount(stats.high, pair.vsCurrency) : "—"}</strong>
           </span>
           <span>
-            Rendah ({period}) <strong>{stats ? formatAmount(stats.low, pair.vsCurrency) : "—"}</strong>
+            Rendah ({period}) <strong>{stats ? displayAmount(stats.low, pair.vsCurrency) : "—"}</strong>
           </span>
         </div>
 

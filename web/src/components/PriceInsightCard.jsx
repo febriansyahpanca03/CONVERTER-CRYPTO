@@ -5,7 +5,6 @@ import ChartTypeToggle from "./chart/ChartTypeToggle.jsx";
 import TimeframeSelector from "./chart/TimeframeSelector.jsx";
 import LinePriceChart from "./chart/LinePriceChart.jsx";
 import CandlestickPriceChart from "./chart/CandlestickPriceChart.jsx";
-import ChartTooltip from "./chart/ChartTooltip.jsx";
 import ChartLoadingState from "./chart/ChartLoadingState.jsx";
 import ChartErrorState from "./chart/ChartErrorState.jsx";
 import ChartEmptyState from "./chart/ChartEmptyState.jsx";
@@ -20,10 +19,14 @@ import {
   computeCandleStats,
   chartDataStatus,
 } from "../lib/chart.js";
-import { formatAmount, relativeTime } from "../lib/format.js";
+import { displayAmount, relativeTime } from "../lib/format.js";
 import { loadChartPrefs, saveChartPrefs } from "../lib/storage.js";
 
-export const CHART_HEIGHT = 260; // di dalam rentang 240-300px yang diminta brief
+// Kartu ringkas ini tingginya dipatok ~300px total (biar sejajar sama
+// kartu Riwayat) — dengan padding + 4 baris info di sekitarnya, plot-nya
+// cuma kebagian ~140px. Modal "Lihat detail" pakai tinggi sendiri yang
+// jauh lebih lega (lihat ChartDetailModal.jsx).
+export const CHART_HEIGHT = 128;
 
 const STATUS_LABEL = {
   live: "Data pasar",
@@ -85,6 +88,10 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
 
   const seriesLength = chartType === "candle" ? data?.candles?.length : data?.points?.length;
   const displayPoint = hoverPoint || latestPoint(data, chartType);
+  // Harga di baris 2 ikut bereaksi ke posisi crosshair — jadi info hover
+  // tetap "kebaca" di kartu ringkas walau baris OHLC terpisah (yang detail)
+  // cuma ada di modal, bukan digambar ulang di sini demi hemat tinggi.
+  const displayPrice = displayPoint ? (chartType === "candle" ? displayPoint.close : displayPoint.price) : null;
   const dataStatus = chartDataStatus(updatedAt, PERIOD_DAYS[period]);
 
   if (!pair) {
@@ -103,10 +110,31 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
 
   return (
     <div className="psa-card psa-insight-card">
+      {/* Baris 1: judul + tombol detail */}
       <div className="psa-insight-head">
         <div className="psa-insight-title-row">
-          <CoinIcon sym={pair.sym} size={20} iconUrl={icons?.[pair.coinId]} />
+          <CoinIcon sym={pair.sym} size={18} iconUrl={icons?.[pair.coinId]} />
           <h2 className="psa-insight-title">Insight Harga {pair.sym.toUpperCase()}</h2>
+        </div>
+        <button className="psa-insight-detail-btn" onClick={() => setModalOpen(true)}>
+          Lihat detail
+        </button>
+      </div>
+
+      {/* Baris 2: pasangan + harga, toggle Garis|Candle */}
+      <div className="psa-insight-price-row">
+        <div className="psa-insight-price-col">
+          <span className="psa-insight-pair">
+            {pair.pairLabel}
+            {pair.isProxy && (
+              <span className="psa-info-dot" tabIndex={0} title={pair.proxyNote} aria-label={pair.proxyNote}>
+                <IconInfo size={11} />
+              </span>
+            )}
+          </span>
+          <span className="psa-insight-price">
+            {displayPrice != null ? displayAmount(displayPrice, pair.vsCurrency) : "—"}
+          </span>
         </div>
         <ChartTypeToggle
           value={chartType}
@@ -116,29 +144,20 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
         />
       </div>
 
-      <div className="psa-insight-meta">
-        <span className="psa-insight-pair">
-          {pair.pairLabel}
-          {pair.isProxy && (
-            <span className="psa-info-dot" tabIndex={0} title={pair.proxyNote} aria-label={pair.proxyNote}>
-              <IconInfo size={11} />
-            </span>
-          )}
-        </span>
-        {stats && (
-          <>
-            <span className="psa-insight-price">{formatAmount(stats.last, pair.vsCurrency)}</span>
-            <span className={`psa-insight-change ${stats.changeAbs >= 0 ? "psa-ticker-up" : "psa-ticker-down"}`}>
-              {stats.changeAbs >= 0 ? "▲" : "▼"} {formatAmount(Math.abs(stats.changeAbs), pair.vsCurrency)} (
-              {stats.changePct >= 0 ? "+" : "−"}
-              {Math.abs(stats.changePct).toFixed(2)}% · {period})
-            </span>
-          </>
+      {/* Baris 3: perubahan %, periode 1J..1T */}
+      <div className="psa-insight-change-row">
+        {stats ? (
+          <span className={`psa-insight-change ${stats.changeAbs >= 0 ? "psa-ticker-up" : "psa-ticker-down"}`}>
+            {stats.changeAbs >= 0 ? "+" : "−"}
+            {Math.abs(stats.changePct).toFixed(2)}% dalam {PERIOD_LABEL[period].toLowerCase()}
+          </span>
+        ) : (
+          <span className="psa-insight-change" />
         )}
+        <TimeframeSelector value={period} onChange={setPeriod} />
       </div>
 
-      <TimeframeSelector value={period} onChange={setPeriod} />
-
+      {/* Baris 4: plot */}
       <div className="psa-insight-chart-wrap">
         {status === "loading" && !data && <ChartLoadingState height={CHART_HEIGHT} />}
         {status === "error" && (
@@ -148,44 +167,47 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
         {data && seriesLength > 0 && (
           <div className={status === "loading" ? "psa-chart-dim" : ""}>
             {chartType === "line" ? (
-              <LinePriceChart points={data.points} height={CHART_HEIGHT} onCrosshairMove={setHoverPoint} />
+              <LinePriceChart
+                points={data.points}
+                height={CHART_HEIGHT}
+                quoteSym={pair.vsCurrency}
+                onCrosshairMove={setHoverPoint}
+              />
             ) : (
-              <CandlestickPriceChart candles={data.candles} height={CHART_HEIGHT} onCrosshairMove={setHoverPoint} />
+              <CandlestickPriceChart
+                candles={data.candles}
+                height={CHART_HEIGHT}
+                quoteSym={pair.vsCurrency}
+                onCrosshairMove={setHoverPoint}
+              />
             )}
           </div>
         )}
       </div>
 
-      {data && seriesLength > 0 && <ChartTooltip type={chartType} point={displayPoint} quoteSym={pair.vsCurrency} />}
-
-      <div className="psa-insight-hilo-row">
+      {/* Baris 5: tinggi/rendah periode + sumber & waktu update */}
+      <div className="psa-insight-foot-row">
         <span>
-          Tinggi ({period}) <strong>{stats ? formatAmount(stats.high, pair.vsCurrency) : "—"}</strong>
+          Tinggi ({period}) <strong>{stats ? displayAmount(stats.high, pair.vsCurrency) : "—"}</strong>
         </span>
         <span>
-          Rendah ({period}) <strong>{stats ? formatAmount(stats.low, pair.vsCurrency) : "—"}</strong>
+          Rendah ({period}) <strong>{stats ? displayAmount(stats.low, pair.vsCurrency) : "—"}</strong>
         </span>
-      </div>
-
-      <div className="psa-insight-status-row">
-        <span>
-          CoinGecko · {STATUS_LABEL[dataStatus]}
+        <span className="psa-insight-updated">
+          {STATUS_LABEL[dataStatus]}
           {updatedAt ? ` · Diperbarui ${relativeTime(updatedAt)}` : ""}
         </span>
-        <button className="psa-insight-detail-btn" onClick={() => setModalOpen(true)}>
-          Lihat detail
-        </button>
       </div>
 
       {/* Chart-nya kanvas — pembaca layar butuh ringkasan teks terpisah. */}
       <p className="visually-hidden">
         {stats
-          ? `Grafik harga ${pair.pairLabel}. Harga terakhir ${formatAmount(stats.last, pair.vsCurrency)}, ${
+          ? `Grafik harga ${pair.pairLabel}. Harga terakhir ${displayAmount(stats.last, pair.vsCurrency)}, ${
               stats.changePct >= 0 ? "naik" : "turun"
-            } ${Math.abs(stats.changePct).toFixed(2)} persen dalam periode ${period}. Tertinggi ${formatAmount(
+            } ${Math.abs(stats.changePct).toFixed(2)} persen dalam periode ${period}. Tertinggi ${displayAmount(
               stats.high,
               pair.vsCurrency
-            )}, terendah ${formatAmount(stats.low, pair.vsCurrency)}.`
+            )}, terendah ${displayAmount(stats.low, pair.vsCurrency)}.`
           : `Grafik harga ${pair.pairLabel} sedang dimuat.`}
       </p>
 

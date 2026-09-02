@@ -45,8 +45,11 @@
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --header-h: 68px;
-  --shell-w: 1180px;
-  --converter-w: 700px;
+  /* Shell (1280px) menaungi header/ticker/footer DAN area "market"      */
+  /* (Popular Pairs, Riwayat, Insight) — converter-w (720px) cuma dipakai */
+  /* buat kalkulator & bagian teks sempit lewat wrapper .psa-narrow.      */
+  --shell-w: 1280px;
+  --converter-w: 720px;
 
   --glass-bg: rgba(10, 18, 38, 0.82);
   --glass-blur: 20px;
@@ -186,6 +189,15 @@ img {
   .psa-bg-stars {
     animation: none;
   }
+}
+
+/* Supaya lompatan anchor nav (#converter/#market/#about) nggak ketutup */
+/* header sticky. */
+#converter,
+#market,
+#about,
+#tentang {
+  scroll-margin-top: var(--header-h);
 }
 
 .psa-content {
@@ -506,12 +518,24 @@ img {
   line-height: 1.6;
 }
 
+/* Stack sekarang selebar shell (1280px) — dulu dibatasi max-width:      */
+/* var(--converter-w) di sini, yang memaksa Popular Pairs/Riwayat/       */
+/* Insight ikut terjepit ke lebar kalkulator (700px), bikin kartu        */
+/* Insight jadi "sidebar" sempit. Elemen yang memang harus tetap sempit  */
+/* (kalkulator, kartu favorit, paragraf Tentang) dibungkus .psa-narrow.  */
 .psa-stack {
-  max-width: var(--converter-w);
-  margin: 0 auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+}
+.psa-narrow {
+  width: 100%;
+}
+.psa-narrow > * {
+  max-width: var(--converter-w);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ============================================================ */
@@ -1304,9 +1328,16 @@ img {
 /*  History                                                        */
 /* ============================================================ */
 .psa-history {
+  width: 100%;
+  min-width: 0;
+  max-height: 320px;
   padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .psa-history-head {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1350,7 +1381,10 @@ img {
 }
 
 .psa-history-table-wrap {
+  flex: 1;
+  min-height: 0;
   overflow-x: auto;
+  overflow-y: auto;
 }
 .psa-history-table {
   width: 100%;
@@ -1424,25 +1458,35 @@ img {
   flex-direction: column;
   gap: var(--space-5);
 }
-@media (min-width: 860px) {
+@media (min-width: 1100px) {
   .psa-insight-row {
     display: grid;
-    grid-template-columns: 1.3fr 1fr;
-    align-items: start;
+    grid-template-columns: minmax(0, 1.1fr) minmax(500px, 0.9fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+  .psa-insight-row > * {
+    min-width: 0;
+    height: 300px;
   }
 }
 .psa-insight-card {
-  padding: var(--space-5);
+  width: 100%;
+  min-width: 0;
+  max-height: 320px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 6px;
+  overflow: hidden;
 }
+/* Baris 1: logo + judul (kiri), "Lihat detail" (kanan). */
 .psa-insight-head {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  flex-wrap: wrap;
 }
 .psa-insight-title-row {
   display: flex;
@@ -1451,7 +1495,7 @@ img {
   min-width: 0;
 }
 .psa-insight-title {
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1473,12 +1517,12 @@ img {
   border: none;
   background: none;
   color: var(--text-muted);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 6px;
   cursor: pointer;
-  min-height: 30px;
+  min-height: 26px;
 }
 .psa-chart-toggle-btn.is-active {
   background: var(--primary);
@@ -1489,30 +1533,61 @@ img {
   cursor: not-allowed;
 }
 
+/* Dipakai di modal "Lihat detail" (yang tetap punya ruang lega, jadi     */
+/* nggak perlu sepadat kartu ringkas) — pasangan+harga+perubahan satu     */
+/* baris yang bisa wrap. */
 .psa-insight-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 8px 14px;
 }
+
+/* Baris 2: pasangan + harga (kiri), toggle Garis|Candle (kanan). */
+.psa-insight-price-row {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.psa-insight-price-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
 .psa-insight-pair {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-faint);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 .psa-insight-price {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Baris 3: perubahan % (kiri), periode 1J..1T (kanan). */
+.psa-insight-change-row {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 .psa-insight-change {
-  font-size: 12.5px;
+  flex-shrink: 0;
+  font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -1523,6 +1598,7 @@ img {
   gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
+  min-width: 0;
 }
 .psa-chart-tf::-webkit-scrollbar {
   display: none;
@@ -1532,12 +1608,12 @@ img {
   border: 1px solid var(--border);
   background: none;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 4px 9px;
   border-radius: var(--radius-pill);
   cursor: pointer;
-  min-height: 30px;
+  min-height: 26px;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .psa-chart-tf-btn:hover {
@@ -1550,11 +1626,19 @@ img {
   color: var(--primary);
 }
 
+/* Baris 4: plot chart, selebar-lebarnya kartu. Tinggi tetap (bukan      */
+/* flex:1) supaya gampang dipastikan cocok sama tinggi kanvas yang       */
+/* diteruskan ke lightweight-charts (lihat CHART_HEIGHT di JS).          */
 .psa-insight-chart-wrap {
   position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  min-width: 0;
+  margin-top: 4px;
 }
 .psa-chart-canvas {
   width: 100%;
+  min-width: 0;
 }
 .psa-chart-dim {
   opacity: 0.55;
@@ -1590,22 +1674,26 @@ img {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   text-align: center;
-  padding: var(--space-4);
+  padding: 8px var(--space-4);
   color: var(--text-faint);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 .psa-chart-retry {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 5px 12px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-strong);
   background: none;
   color: var(--text);
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
 }
 .psa-chart-retry:hover {
@@ -1633,27 +1721,29 @@ img {
   font-weight: 600;
 }
 
-.psa-insight-hilo-row {
+/* Baris 5: Tinggi/Rendah/status update, digabung satu baris supaya      */
+/* kartu tetap muat dalam ~300px (dulu dua baris terpisah). */
+.psa-insight-foot-row {
+  flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 16px;
-  font-size: 12px;
+  align-items: center;
+  gap: 4px 14px;
+  font-size: 11px;
   color: var(--text-faint);
   border-top: 1px solid var(--border);
-  padding-top: var(--space-2);
+  padding-top: 6px;
+  margin-top: 2px;
 }
-.psa-insight-hilo-row strong {
+.psa-insight-foot-row strong {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
-.psa-insight-status-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11.5px;
-  color: var(--text-faint);
+.psa-insight-foot-row .psa-insight-updated {
+  margin-left: auto;
 }
+
 .psa-insight-detail-btn {
   flex-shrink: 0;
   background: none;
@@ -1662,7 +1752,7 @@ img {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 .psa-insight-detail-btn:hover {
   text-decoration: underline;
@@ -1744,7 +1834,18 @@ img {
 /* Riwayat tampil dulu di desktop (kolom kiri), tapi di mobile Insight   */
 /* Harga didahulukan sesuai urutan yang diminta brief — dibalik lewat    */
 /* `order`, bukan mengubah urutan DOM (jadi tidak mengubah makna semantik). */
-@media (max-width: 859px) {
+@media (max-width: 1099px) {
+  .psa-insight-row {
+    grid-template-columns: 1fr;
+  }
+  .psa-insight-row > * {
+    width: 100%;
+    height: auto;
+  }
+  .psa-history,
+  .psa-insight-card {
+    max-height: none;
+  }
   .psa-history {
     order: 2;
   }
@@ -1848,11 +1949,11 @@ img {
 /* melintasi layar, biar tidak ikut menimpa konten pas discroll.         */
 .psa-help-bot {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: 24px;
+  bottom: 24px;
   z-index: 50;
-  width: 56px;
-  height: 56px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   background: var(--gradient-primary);
   border: none;
@@ -1870,8 +1971,8 @@ img {
   transform: scale(1.05);
 }
 .psa-help-bot img {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -2063,6 +2164,19 @@ img {
   display: flex;
   gap: var(--space-3);
 }
+/* Di desktop, kartu-kartu ini seragam lebar dalam satu baris grid —     */
+/* bukan lagi pita scroll horizontal (yang cuma masuk akal di mobile).   */
+@media (min-width: 720px) {
+  .psa-popular-scroll {
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+  }
+  .psa-popular-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
 .psa-popular-card {
   flex: 0 0 auto;
   display: flex;
@@ -2250,18 +2364,18 @@ img {
     width: auto;
   }
   .psa-help-bot {
-    right: 14px;
-    bottom: 14px;
-    width: 50px;
-    height: 50px;
+    right: 16px;
+    bottom: 16px;
+    width: 54px;
+    height: 54px;
   }
   .psa-help-bot img {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
   }
   .psa-help-panel {
-    right: 14px;
-    bottom: 72px;
+    right: 16px;
+    bottom: 78px;
   }
 }
 @media (max-width: 420px) {
