@@ -418,21 +418,31 @@ export default function App() {
 }
 
 /* S: pasangan populer — jalan pintas ke pasangan yang paling sering dicari. */
+/* BTC & USDT/IDR ditaruh duluan karena paling relevan buat audiens ID,   */
+/* sisanya seluruh koin yang situs ini dukung (bukan cuma segelintir)     */
+/* dipasangkan ke USDT — biar chart-nya bisa dibuka satu klik buat        */
+/* token apa pun, bukan cuma yang kebetulan masuk daftar pendek dulu.     */
 const POPULAR_PAIRS = [
   { from: "btc", to: "idr" },
-  { from: "eth", to: "usdt" },
   { from: "usdt", to: "idr" },
-  { from: "sol", to: "usdt" },
+  ...Object.keys(COINS)
+    .filter((sym) => !["usdt", "usdc", "dai"].includes(sym))
+    .map((sym) => ({ from: sym, to: "usdt" })),
 ];
+const POPULAR_PAIRS_VISIBLE_DEFAULT = 8;
 
 function PopularPairs({ icons, onSelect }) {
-  // Harga dasar (bukan kurs — cuma buat konteks di kartu), di-cache 20s
-  // di server jadi murah untuk dipanggil terpisah dari ticker utama.
+  const [expanded, setExpanded] = useState(false);
+  const visiblePairs = expanded ? POPULAR_PAIRS : POPULAR_PAIRS.slice(0, POPULAR_PAIRS_VISIBLE_DEFAULT);
+
+  // Harga dasar (bukan kurs — cuma buat konteks di kartu). Minta harga
+  // SEMUA koin sekaligus (bukan cuma yang sedang tampil) supaya cache-nya
+  // di server persis sama dengan yang dipakai ticker & fetchRates — satu
+  // permintaan besar yang di-cache dan dipakai bareng, bukan berkali-kali.
   const [prices, setPrices] = useState(null);
   useEffect(() => {
     let alive = true;
-    const symbols = [...new Set(POPULAR_PAIRS.map((p) => p.from))];
-    fetchPricesFor(symbols)
+    fetchPricesFor(Object.keys(COINS))
       .then((d) => alive && setPrices(d))
       .catch(() => {});
     return () => {
@@ -442,12 +452,19 @@ function PopularPairs({ icons, onSelect }) {
 
   return (
     <section className="psa-section" aria-labelledby="psa-popular-title">
-      <h2 id="psa-popular-title" className="psa-section-title">
-        Pasangan populer
-      </h2>
+      <div className="psa-popular-head">
+        <h2 id="psa-popular-title" className="psa-section-title">
+          Pasangan populer
+        </h2>
+        {POPULAR_PAIRS.length > POPULAR_PAIRS_VISIBLE_DEFAULT && (
+          <button className="psa-popular-toggle" onClick={() => setExpanded((v) => !v)}>
+            {expanded ? "Sembunyikan" : `Lihat semua (${POPULAR_PAIRS.length})`}
+          </button>
+        )}
+      </div>
       <div className="psa-popular-scroll">
         <div className="psa-popular-row">
-          {POPULAR_PAIRS.map((p) => {
+          {visiblePairs.map((p) => {
             const fromMeta = COINS[p.from];
             const entry = fromMeta ? prices?.[fromMeta.id] : null;
             const change = entry?.usd_24h_change;
