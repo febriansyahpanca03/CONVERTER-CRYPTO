@@ -10,10 +10,13 @@ const DEBOUNCE_MS = 250;
 /* days=1 ke API, bedanya cuma dipotong di sisi klien atau tidak).       */
 const cache = new Map();
 
+// Samain dengan chartTtlFor() di server/app.js — kalau beda, klien cuma
+// akan refetch lebih sering dari yang sebenarnya diperlukan (server-nya
+// toh masih ngasih data cache yang sama, jadi nggak salah, cuma boros).
 function cacheTtlMs(days) {
-  if (days <= 1) return 60_000;
-  if (days <= 30) return 5 * 60_000;
-  return 30 * 60_000;
+  if (days <= 1) return 3 * 60_000;
+  if (days <= 30) return 20 * 60_000;
+  return 60 * 60_000;
 }
 
 function shape(raw, type, period) {

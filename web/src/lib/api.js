@@ -1,4 +1,14 @@
-import { COINS, TICKER_SYMS, isCoin, known } from "../data/assets.js";
+import { COINS, FIATS, TICKER_SYMS, isCoin, known } from "../data/assets.js";
+
+/* Dipakai bareng oleh fetchRates & PopularPairs supaya SEMUA permintaan */
+/* harga (dari pasangan apa pun, oleh siapa pun) jatuh ke SATU cache key */
+/* yang sama di server — bukan satu cache entry per kombinasi pasangan.  */
+/* Ini penting banget karena CoinGecko tanpa API key punya jatah yang    */
+/* ketat, dan situs ini sekarang dipakai publik.                         */
+const ALL_COIN_IDS = Object.values(COINS)
+  .map((c) => c.id)
+  .join(",");
+const ALL_VS = Object.keys(FIATS).concat("usd").join(",");
 
 /* Semua fungsi di sini memanggil endpoint backend yang sama seperti     */
 /* sebelumnya (/api/parse, /api/price, /api/icons) — tidak ada endpoint  */
@@ -72,13 +82,14 @@ export function computeRate(data, fromSym, toSym) {
 }
 
 export async function fetchRates(fromSym, toSym, outerSignal) {
-  const ids = new Set(["bitcoin"]);
-  const vs = new Set(["usd"]);
-  for (const s of [fromSym, toSym]) {
-    if (isCoin(s)) ids.add(COINS[s].id);
-    else vs.add(s);
-  }
-  const url = `/api/price?ids=${[...ids].join(",")}&vs=${[...vs].join(",")}`;
+  // Dulu cuma minta id/vs yang persis dipakai pasangan ini — kelihatannya
+  // hemat, tapi malah bikin server nyimpen satu cache entry TERPISAH buat
+  // tiap kombinasi pasangan, jadi cache-nya nyaris nggak pernah ke-hit.
+  // Sekarang selalu minta set yang sama persis dengan ticker/popular pairs
+  // (lihat ALL_COIN_IDS/ALL_VS), jadi hampir semua permintaan — dari
+  // pasangan apa pun, pengguna mana pun — berbagi satu cache 20 detik yang
+  // sama di server, jauh lebih hemat panggilan ke CoinGecko.
+  const url = `/api/price?ids=${ALL_COIN_IDS}&vs=${ALL_VS}`;
 
   const { signal, clear } = withTimeout(outerSignal);
   let res;

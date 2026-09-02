@@ -26,7 +26,11 @@ export default function MarketTicker({ onSelect }) {
       }
     }
     load();
-    const id = setInterval(load, 45_000);
+    // 90 detik (naik dari 45) — situs ini jalan tanpa API key CoinGecko
+    // terdaftar, jadi tiap pengunjung yang polling terus-menerus di latar
+    // belakang ikut menggerus jatah yang ketat itu. Ticker tetap "hidup",
+    // cuma nggak seagresif dulu.
+    const id = setInterval(load, 90_000);
     return () => {
       alive = false;
       clearInterval(id);

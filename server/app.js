@@ -183,7 +183,13 @@ app.post("/api/assistant", rateLimit, async (req, res) => {
 /* menghitung BTC dalam menit yang sama hanya jadi tiga permintaan.     */
 
 const priceCache = new Map();
-const PRICE_TTL_MS = 20_000;
+// Dinaikkan dari 20 -> 30 detik. Sekarang jauh lebih berarti daripada dulu:
+// frontend juga sudah diubah supaya semua permintaan harga (fetchRates,
+// ticker, Popular Pairs) berbagi cache key yang sama sebisa mungkin, jadi
+// TTL yang lebih panjang di sini langsung memangkas jumlah panggilan nyata
+// ke CoinGecko — penting karena situs ini jalan tanpa API key terdaftar
+// (lihat komentar COINGECKO_API_KEY di .env), jadi jatahnya ketat sekali.
+const PRICE_TTL_MS = 30_000;
 
 app.get("/api/price", rateLimitPublicData, async (req, res) => {
   const ids = String(req.query.ids || "")
@@ -283,10 +289,15 @@ const chartCache = new Map();
 const ALLOWED_DAYS = new Set([1, 7, 30, 365]);
 const ALLOWED_TYPES = new Set(["line", "candle"]);
 
+// Dinaikkan cukup jauh dari versi awal (60s/5m/30m) — situs ini jalan
+// tanpa API key CoinGecko terdaftar (jatahnya jauh lebih ketat daripada
+// yang dikira), dan grafik harga wajar kalau nggak sefresh harga live di
+// kalkulator. 1J/24J tetap paling pendek karena candle/titiknya sendiri
+// cuma granularitas 5-30 menit, jadi cache 3 menit masih relevan.
 function chartTtlFor(days) {
-  if (days <= 1) return 60_000;
-  if (days <= 30) return 5 * 60_000;
-  return 30 * 60_000;
+  if (days <= 1) return 3 * 60_000;
+  if (days <= 30) return 20 * 60_000;
+  return 60 * 60_000;
 }
 
 app.get("/api/chart", rateLimitPublicData, async (req, res) => {
