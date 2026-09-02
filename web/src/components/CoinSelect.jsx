@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ASSET_LIST } from "../data/assets.js";
 import CoinIcon from "./CoinIcon.jsx";
+import { IconChevronDown, IconSearch } from "./Icons.jsx";
+import { loadRecentCoins, pushRecentCoin } from "../lib/storage.js";
 
 /* Dropdown aset yang bisa dicari, dengan navigasi keyboard penuh:       */
 /*  - Enter membuka / memilih                                            */
@@ -11,6 +13,7 @@ export default function CoinSelect({ value, onChange, icons, label }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [recent, setRecent] = useState(() => loadRecentCoins());
   const rootRef = useRef(null);
   const searchRef = useRef(null);
   const triggerRef = useRef(null);
@@ -19,6 +22,11 @@ export default function CoinSelect({ value, onChange, icons, label }) {
   const filtered = q
     ? ASSET_LIST.filter((a) => a.symbol.includes(q) || a.name.toLowerCase().includes(q))
     : ASSET_LIST;
+  // Bagian "Baru dipakai" cuma tampil kalau daftar belum difilter, dan aset
+  // yang sedang aktif di field ini sendiri tidak perlu diulang di situ.
+  const recentAssets = q
+    ? []
+    : recent.map((sym) => ASSET_LIST.find((a) => a.symbol === sym)).filter((a) => a && a.symbol !== value);
 
   useEffect(() => {
     if (!open) return;
@@ -33,6 +41,7 @@ export default function CoinSelect({ value, onChange, icons, label }) {
     if (open) {
       setQuery("");
       setActiveIndex(0);
+      setRecent(loadRecentCoins());
       const raf = requestAnimationFrame(() => searchRef.current?.focus());
       return () => cancelAnimationFrame(raf);
     }
@@ -44,6 +53,7 @@ export default function CoinSelect({ value, onChange, icons, label }) {
 
   function selectAsset(sym) {
     onChange(sym);
+    setRecent(pushRecentCoin(sym));
     setOpen(false);
     triggerRef.current?.focus();
   }
@@ -70,6 +80,33 @@ export default function CoinSelect({ value, onChange, icons, label }) {
   const iconUrl = current?.id ? icons[current.id] : undefined;
   const listboxId = `coin-listbox-${label}`;
 
+  function renderOption(a, i, keyPrefix) {
+    const url = a.id ? icons[a.id] : undefined;
+    return (
+      <button
+        key={`${keyPrefix}-${a.symbol}`}
+        id={`coin-opt-${label}-${a.symbol}`}
+        type="button"
+        role="option"
+        aria-selected={a.symbol === value}
+        className={`psa-coin-option ${i === activeIndex ? "is-active" : ""} ${a.symbol === value ? "is-selected" : ""}`}
+        onMouseEnter={() => setActiveIndex(i)}
+        onClick={() => selectAsset(a.symbol)}
+      >
+        <CoinIcon sym={a.symbol} iconUrl={url} />
+        <span className="psa-coin-option-name">
+          <span className="psa-coin-option-sym">{a.symbol.toUpperCase()}</span>
+          <span className="psa-coin-option-full">{a.name}</span>
+        </span>
+        {a.symbol === value && (
+          <span className="psa-coin-option-check" aria-hidden="true">
+            ✓
+          </span>
+        )}
+      </button>
+    );
+  }
+
   return (
     <div className="psa-coin-select" ref={rootRef}>
       <button
@@ -83,14 +120,13 @@ export default function CoinSelect({ value, onChange, icons, label }) {
       >
         <CoinIcon sym={value} iconUrl={iconUrl} />
         <span className="psa-coin-sym">{value.toUpperCase()}</span>
-        <span className="psa-coin-chevron" aria-hidden="true">
-          ▾
-        </span>
+        <IconChevronDown size={14} className={`psa-coin-chevron ${open ? "is-open" : ""}`} />
       </button>
 
       {open && (
         <div className="psa-coin-panel">
           <div className="psa-coin-search-wrap">
+            <IconSearch size={15} className="psa-coin-search-icon" />
             <label htmlFor={`coin-search-${label}`} className="visually-hidden">
               Cari aset untuk {label}
             </label>
@@ -112,30 +148,17 @@ export default function CoinSelect({ value, onChange, icons, label }) {
             />
           </div>
           <div className="psa-coin-list" role="listbox" id={listboxId}>
+            {recentAssets.length > 0 && (
+              <>
+                <div className="psa-coin-group-label">Baru dipakai</div>
+                {recentAssets.map((a) => renderOption(a, filtered.indexOf(a), "recent"))}
+                <div className="psa-coin-group-label">Semua aset</div>
+              </>
+            )}
             {filtered.length === 0 && (
               <div className="psa-coin-empty">Tidak ada aset yang cocok dengan “{query}”.</div>
             )}
-            {filtered.map((a, i) => {
-              const url = a.id ? icons[a.id] : undefined;
-              return (
-                <button
-                  key={a.symbol}
-                  id={`coin-opt-${label}-${a.symbol}`}
-                  type="button"
-                  role="option"
-                  aria-selected={a.symbol === value}
-                  className={`psa-coin-option ${i === activeIndex ? "is-active" : ""}`}
-                  onMouseEnter={() => setActiveIndex(i)}
-                  onClick={() => selectAsset(a.symbol)}
-                >
-                  <CoinIcon sym={a.symbol} iconUrl={url} />
-                  <span className="psa-coin-option-name">
-                    <span className="psa-coin-option-sym">{a.symbol.toUpperCase()}</span>
-                    <span className="psa-coin-option-full">{a.name}</span>
-                  </span>
-                </button>
-              );
-            })}
+            {filtered.map((a, i) => renderOption(a, i, "all"))}
           </div>
         </div>
       )}

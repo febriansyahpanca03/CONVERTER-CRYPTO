@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { IconSwapVertical, IconMenu, IconClose } from "./Icons.jsx";
 
 const LINKS = [
   { href: "#converter", label: "Converter" },
   { href: "#market", label: "Market" },
-  { href: "#about", label: "Tentang" },
+  { href: "#about", label: "About" },
 ];
 
 /* Header minimal: logo + nama produk, dan navigasi ke 3 bagian halaman  */
@@ -16,12 +17,12 @@ export default function Header() {
   return (
     <header className="psa-header">
       <div className="psa-header-inner">
-        <a href="#converter" className="psa-logo" aria-label="Panca Swap Agent, ke bagian converter">
+        <a href="#converter" className="psa-logo" aria-label="Panca Swap, ke bagian converter">
           <span className="psa-logo-mark" aria-hidden="true">
-            ⇅
+            <IconSwapVertical size={17} />
           </span>
           <span className="psa-logo-text">
-            <span className="psa-logo-name">Panca Swap Agent</span>
+            <span className="psa-logo-name">Panca Swap</span>
             <span className="psa-logo-tagline">Kurs kripto, selalu baru</span>
           </span>
         </a>
@@ -34,44 +35,27 @@ export default function Header() {
           ))}
         </nav>
 
-        <button
-          className="psa-menu-btn"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={open ? "Tutup menu" : "Buka menu"}
-        >
-          {open ? "✕" : "☰"}
-        </button>
+        <div className="psa-header-right">
+          <span className="psa-live-indicator" title="Harga diambil langsung dari CoinGecko">
+            <span className="psa-live-dot" aria-hidden="true" />
+            <span className="psa-live-text">Live Market</span>
+          </span>
+
+          <button
+            className="psa-menu-btn"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-label={open ? "Tutup menu" : "Buka menu"}
+          >
+            {open ? <IconClose size={18} /> : <IconMenu size={18} />}
+          </button>
+        </div>
       </div>
 
       {open && (
-        <nav
-          aria-label="Navigasi mobile"
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            background: "#0c0e19",
-            borderBottom: "1px solid var(--border-strong)",
-            display: "flex",
-            flexDirection: "column",
-            padding: "8px 20px 16px",
-          }}
-        >
+        <nav aria-label="Navigasi mobile" className="psa-mobile-nav">
           {LINKS.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              style={{
-                padding: "12px 0",
-                borderBottom: "1px solid var(--border)",
-                color: "var(--text)",
-                textDecoration: "none",
-                fontSize: 15,
-              }}
-            >
+            <a key={l.href} href={l.href} onClick={() => setOpen(false)}>
               {l.label}
             </a>
           ))}

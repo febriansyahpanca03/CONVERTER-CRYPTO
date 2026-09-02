@@ -7,6 +7,7 @@ export default function Starfield() {
     <div className="psa-bg" aria-hidden="true">
       <div className="psa-bg-photo" />
       <div className="psa-bg-scrim" />
+      <div className="psa-bg-focus" />
       <div className="psa-bg-stars" />
     </div>
   );

@@ -6,6 +6,8 @@ const HISTORY_MAX = 5;
 const FAVORITES_KEY = "panca-swap-favorites";
 const FAVORITES_MAX = 8;
 const LAST_PAIR_KEY = "panca-swap-last-pair";
+const RECENT_COINS_KEY = "panca-swap-recent-coins";
+const RECENT_COINS_MAX = 6;
 
 function safeGet(key) {
   try {
@@ -57,6 +59,18 @@ export function saveLastPair(from, to) {
   } catch {
     /* tidak fatal — cuma kenyamanan, bukan fitur inti */
   }
+}
+
+/* Aset yang belakangan ini dipilih di coin selector (lintas kedua field) — */
+/* dipakai buat munculin bagian "Baru dipakai" di atas daftar pencarian.   */
+export function loadRecentCoins() {
+  return safeGet(RECENT_COINS_KEY);
+}
+
+export function pushRecentCoin(sym) {
+  const next = [sym, ...loadRecentCoins().filter((s) => s !== sym)].slice(0, RECENT_COINS_MAX);
+  safeSet(RECENT_COINS_KEY, next);
+  return next;
 }
 
 export { HISTORY_MAX, FAVORITES_MAX };

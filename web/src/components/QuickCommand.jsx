@@ -1,3 +1,5 @@
+import { IconSend, IconBolt } from "./Icons.jsx";
+
 const SAMPLES = ["250 USDT ke ETH", "1 BTC ke IDR", "0.5 ETH ke SOL", "10 SOL ke DOGE"];
 
 /* Cara alternatif: ketik kalimat bebas, tetap dipertahankan sebagai     */
@@ -31,22 +33,26 @@ export default function QuickCommand({ query, onQueryChange, onRun, status }) {
           aria-label="Jalankan Quick Command"
           title="Jalankan"
         >
-          {loading ? "…" : "→"}
+          <IconSend size={16} />
         </button>
       </div>
-      <div className="psa-chip-row">
-        {SAMPLES.map((s) => (
-          <button
-            key={s}
-            className="psa-chip"
-            onClick={() => {
-              onQueryChange(s);
-              onRun(s);
-            }}
-          >
-            {s}
-          </button>
-        ))}
+      <div className="psa-chip-scroll">
+        <div className="psa-chip-row">
+          {SAMPLES.map((s) => (
+            <button
+              key={s}
+              className="psa-chip"
+              onClick={() => {
+                onQueryChange(s);
+                onRun(s);
+              }}
+            >
+              <IconBolt size={13} className="psa-chip-icon" />
+              <span className="psa-chip-tag">Contoh</span>
+              {s}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

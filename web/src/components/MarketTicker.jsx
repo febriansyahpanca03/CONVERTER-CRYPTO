@@ -4,14 +4,16 @@ import { fetchTickerPrices } from "../lib/api.js";
 import { formatAmount } from "../lib/format.js";
 
 /* Pita harga berjalan. Diperbaiki dari versi sebelumnya:                */
-/*  - label "Market" di kiri supaya jelas fungsinya                      */
+/*  - label "LIVE MARKET" di kiri supaya jelas fungsinya                 */
 /*  - tepi kiri/kanan pudar (mask), bukan terpotong tegas                */
-/*  - animasi diperlambat (90s, dari 45s) supaya terbaca                 */
+/*  - animasi lambat (110s) supaya terbaca, tanpa bagian kosong          */
 /*  - berhenti saat di-hover (CSS :hover)                                */
 /*  - warna + ikon panah, bukan warna saja                               */
 /*  - item bisa diklik untuk mengisi converter                           */
+/*  - di layar sempit, marquee diganti satu kartu harga yang bergantian  */
 export default function MarketTicker({ onSelect }) {
   const [prices, setPrices] = useState(null);
+  const [mobileIndex, setMobileIndex] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -29,6 +31,11 @@ export default function MarketTicker({ onSelect }) {
       alive = false;
       clearInterval(id);
     };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setMobileIndex((i) => (i + 1) % TICKER_SYMS.length), 3000);
+    return () => clearInterval(id);
   }, []);
 
   const items = TICKER_SYMS.map((sym) => {
@@ -58,11 +65,14 @@ export default function MarketTicker({ onSelect }) {
       );
     });
 
+  const mobileItem = items[mobileIndex] || items[0];
+  const mobileUp = typeof mobileItem?.change === "number" && mobileItem.change >= 0;
+
   return (
     <div className="psa-ticker" id="market" role="region" aria-label="Harga pasar berjalan">
       <h2 className="psa-ticker-label">
         <span className="psa-ticker-dot" aria-hidden="true" />
-        Market
+        <span className="psa-live-text">Live Market</span>
       </h2>
       <div className="psa-ticker-viewport">
         <div className="psa-ticker-track">
@@ -70,6 +80,26 @@ export default function MarketTicker({ onSelect }) {
           {renderItems("b")}
         </div>
       </div>
+
+      <button
+        className="psa-ticker-mobile"
+        onClick={() => mobileItem && onSelect?.(mobileItem.sym)}
+        title={mobileItem ? `Pakai ${mobileItem.sym.toUpperCase()} di converter` : undefined}
+      >
+        {mobileItem && (
+          <span key={mobileItem.sym} className="psa-ticker-mobile-row">
+            <span className="psa-ticker-sym">{mobileItem.sym.toUpperCase()}</span>
+            <span className="psa-ticker-price">
+              {mobileItem.price != null ? `$${formatAmount(mobileItem.price, "usd")}` : "…"}
+            </span>
+            {typeof mobileItem.change === "number" && (
+              <span className={`psa-ticker-change ${mobileUp ? "psa-ticker-up" : "psa-ticker-down"}`}>
+                {mobileUp ? "▲" : "▼"} {Math.abs(mobileItem.change).toFixed(1)}%
+              </span>
+            )}
+          </span>
+        )}
+      </button>
     </div>
   );
 }

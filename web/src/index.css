@@ -2,11 +2,12 @@
 /*  Design tokens                                                 */
 /* ============================================================ */
 :root {
-  --bg: #080b14;
+  --bg: #060810;
   --panel: #10121f;
-  --panel-hover: #141728;
-  --border: #1f2437;
-  --border-strong: #2c3350;
+  --panel-hover: #141a2c;
+  --surface-3: #1a2138;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
 
   --text: #f1f5f9;
   --text-muted: #94a3b8;
@@ -24,7 +25,7 @@
 
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 18px;
+  --radius-lg: 22px;
   --radius-pill: 999px;
 
   --space-1: 4px;
@@ -37,13 +38,19 @@
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.5);
   --focus-ring: 0 0 0 3px rgba(34, 211, 238, 0.4);
 
   --font-sans: "Plus Jakarta Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --header-h: 64px;
-  --converter-w: 680px;
+  --header-h: 68px;
+  --shell-w: 1180px;
+  --converter-w: 700px;
+
+  --glass-bg: rgba(10, 18, 38, 0.82);
+  --glass-blur: 20px;
+  --gradient-primary: linear-gradient(135deg, #22d3ee, #38bdf8);
 }
 
 /* ============================================================ */
@@ -129,18 +136,30 @@ img {
   position: absolute;
   inset: 0;
   background: url("/space-bg.jpg") center / cover no-repeat;
-  filter: blur(6px) saturate(0.85) brightness(0.6);
+  filter: blur(6px) saturate(0.7) brightness(0.4);
   transform: scale(1.06); /* menutupi tepi blur */
 }
 .psa-bg-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(8, 11, 20, 0.86) 0%, rgba(8, 11, 20, 0.93) 45%, var(--bg) 100%);
+  background: linear-gradient(180deg, rgba(4, 6, 12, 0.78) 0%, rgba(4, 6, 12, 0.9) 45%, var(--bg) 100%);
+}
+/* Radial gradient halus di belakang area converter, supaya kartu       */
+/* utama punya "panggung" tanpa gambar galaksi bersaing dengan teks.    */
+.psa-bg-focus {
+  position: absolute;
+  left: 50%;
+  top: 420px;
+  width: min(900px, 140vw);
+  height: 700px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(34, 211, 238, 0.1), transparent 70%);
+  pointer-events: none;
 }
 .psa-bg-stars {
   position: absolute;
   inset: -50%;
-  opacity: 0.35;
+  opacity: 0.22;
   background-repeat: repeat;
   background-size: 200px 160px;
   background-image: radial-gradient(1.5px 1.5px at 40px 60px, #fff, transparent),
@@ -163,6 +182,11 @@ img {
     animation: none;
   }
 }
+@media (max-width: 640px) {
+  .psa-bg-stars {
+    animation: none;
+  }
+}
 
 .psa-content {
   position: relative;
@@ -170,6 +194,21 @@ img {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* Satu container utama yang menyatukan ticker/header/hero/converter/    */
+/* riwayat/footer dalam satu lebar dan ritme jarak yang sama, supaya     */
+/* converter tidak terasa mengambang sendirian di tengah halaman.        */
+.psa-shell {
+  width: 100%;
+  max-width: var(--shell-w);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+@media (max-width: 640px) {
+  .psa-shell {
+    padding: 0 var(--space-4);
+  }
 }
 
 /* ============================================================ */
@@ -183,18 +222,24 @@ img {
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--border);
-  background: rgba(8, 11, 20, 0.75);
-  backdrop-filter: blur(10px);
+  background: rgba(6, 8, 16, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 .psa-header-inner {
   width: 100%;
-  max-width: 1080px;
+  max-width: var(--shell-w);
   margin: 0 auto;
-  padding: 0 var(--space-5);
+  padding: 0 var(--space-6);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+}
+@media (max-width: 640px) {
+  .psa-header-inner {
+    padding: 0 var(--space-4);
+  }
 }
 .psa-logo {
   display: flex;
@@ -250,6 +295,48 @@ img {
   color: var(--text);
   border-color: var(--primary);
 }
+.psa-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+.psa-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+.psa-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5);
+  animation: psa-live-pulse 2s ease-out infinite;
+}
+@keyframes psa-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-live-dot {
+    animation: none;
+  }
+}
 .psa-menu-btn {
   display: none;
   background: none;
@@ -260,6 +347,25 @@ img {
   height: 40px;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+}
+.psa-mobile-nav {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #0c0e19;
+  border-bottom: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2) var(--space-4) var(--space-4);
+}
+.psa-mobile-nav a {
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 15px;
 }
 
 /* ============================================================ */
@@ -267,8 +373,9 @@ img {
 /* ============================================================ */
 .psa-ticker {
   position: relative;
+  min-height: 40px;
   border-bottom: 1px solid var(--border);
-  background: rgba(16, 18, 31, 0.7);
+  background: #0a0c16;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -278,13 +385,14 @@ img {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  padding: 9px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-muted);
   border-right: 1px solid var(--border);
-  background: rgba(8, 11, 20, 0.6);
+  background: rgba(255, 255, 255, 0.02);
   white-space: nowrap;
 }
 .psa-ticker-dot {
@@ -292,6 +400,13 @@ img {
   height: 6px;
   border-radius: 50%;
   background: var(--success);
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5);
+  animation: psa-live-pulse 2s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-ticker-dot {
+    animation: none;
+  }
 }
 .psa-ticker-viewport {
   flex: 1;
@@ -303,8 +418,9 @@ img {
 .psa-ticker-track {
   display: inline-flex;
   width: max-content;
-  padding: 10px 0;
-  animation: psa-ticker-scroll 90s linear infinite;
+  padding: 9px 0;
+  animation: psa-ticker-scroll 110s linear infinite;
+  font-variant-numeric: tabular-nums;
 }
 .psa-ticker:hover .psa-ticker-track,
 .psa-ticker-track.paused {
@@ -336,6 +452,7 @@ img {
   border-bottom: none;
   border-left: none;
   cursor: pointer;
+  transition: color 0.15s;
 }
 .psa-ticker-item:hover {
   color: var(--primary);
@@ -360,12 +477,36 @@ img {
   color: var(--danger);
 }
 
+/* Pengganti marquee di layar sempit: satu kartu harga yang berganti     */
+/* otomatis tiap beberapa detik, bukan pita berjalan yang susah dibaca.  */
+.psa-ticker-mobile {
+  display: none;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 9px var(--space-4);
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.psa-ticker-mobile-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  animation: psa-fade-in 0.3s ease-out;
+}
+
 /* ============================================================ */
 /*  Main / hero                                                   */
 /* ============================================================ */
 .psa-main {
   flex: 1;
-  padding: var(--space-7) var(--space-5) var(--space-6);
+  padding: var(--space-7) 0 var(--space-6);
 }
 .psa-hero {
   max-width: var(--converter-w);
@@ -373,11 +514,11 @@ img {
   text-align: center;
 }
 .psa-h1 {
-  font-size: clamp(26px, 4.5vw, 40px);
-  font-weight: 700;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 800;
   letter-spacing: -0.01em;
   margin: 0;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  background: linear-gradient(90deg, var(--text), var(--text) 55%, var(--primary));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -394,7 +535,7 @@ img {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
 }
 
 /* ============================================================ */
@@ -410,8 +551,35 @@ img {
 /* ============================================================ */
 /*  Converter (mode utama terstruktur)                            */
 /* ============================================================ */
+/* Satu "kartu utama": input, hasil, kurs/status, dan aksi sekunder      */
+/* semuanya di dalam satu permukaan kaca yang sama, bukan beberapa kotak */
+/* terpisah yang berjejer.                                               */
+.psa-converter-shell {
+  /* .psa-stack (induknya) sudah dibatasi max-width:var(--converter-w),   */
+  /* jadi cukup width:100% di sini — pakai max-width+margin:auto lagi di  */
+  /* atas flex item ini bikin browser membatalkan "stretch" dan menghitung */
+  /* lebarnya dari lebar-maksimum kontennya sendiri (termasu tombol       */
+  /* width:100% di dalamnya), yang berujung meluber di layar sempit.      */
+  width: 100%;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.psa-converter-shell:focus-within {
+  border-color: rgba(34, 211, 238, 0.35);
+}
 .psa-converter {
-  padding: var(--space-5);
+  padding: var(--space-6);
+}
+@media (max-width: 640px) {
+  .psa-converter {
+    padding: 18px;
+  }
 }
 .psa-field {
   border: 1px solid var(--border);
@@ -465,23 +633,24 @@ img {
   z-index: 2;
 }
 .psa-swap-btn {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-md);
-  background: var(--bg);
+  background: var(--surface-3);
   border: 1px solid var(--border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  font-size: 18px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, transform 0.2s;
+  transition: color 0.15s, border-color 0.15s, transform 0.22s ease;
 }
 .psa-swap-btn:hover:not(:disabled) {
   color: var(--primary);
   border-color: var(--primary);
-  transform: rotate(180deg);
+}
+.psa-swap-btn:focus-visible {
+  color: var(--primary);
 }
 .psa-swap-btn:disabled {
   opacity: 0.5;
@@ -500,9 +669,6 @@ img {
   font-weight: 700;
   color: var(--text);
   word-break: break-word;
-}
-.psa-result-value.is-primary {
-  color: var(--primary);
 }
 @media (prefers-reduced-motion: no-preference) {
   .psa-result-pop {
@@ -523,26 +689,74 @@ img {
 .psa-convert-btn {
   width: 100%;
   margin-top: var(--space-4);
-  padding: 14px;
+  height: 50px;
   border-radius: var(--radius-md);
   border: none;
-  background: var(--primary);
+  background: var(--gradient-primary);
   color: #04222a;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: filter 0.15s, transform 0.12s, box-shadow 0.15s;
 }
 .psa-convert-btn:hover:not(:disabled) {
-  background: var(--primary-hover);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(34, 211, 238, 0.22);
 }
 .psa-convert-btn:active:not(:disabled) {
-  transform: scale(0.99);
+  transform: translateY(1px);
+  filter: brightness(0.98);
 }
 .psa-convert-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.75;
   cursor: wait;
+  transform: none;
+}
+.psa-spinner {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(4, 34, 42, 0.35);
+  border-top-color: #04222a;
+  animation: psa-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes psa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-spinner {
+    animation-duration: 1.4s;
+  }
+}
+
+/* ============================================================ */
+/*  Micro-interaction keyframes bersama                           */
+/* ============================================================ */
+@keyframes psa-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes psa-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ============================================================ */
@@ -586,7 +800,10 @@ img {
 }
 .psa-coin-chevron {
   color: var(--text-faint);
-  font-size: 10px;
+  transition: transform 0.18s ease;
+}
+.psa-coin-chevron.is-open {
+  transform: rotate(180deg);
 }
 
 .psa-coin-panel {
@@ -594,7 +811,7 @@ img {
   top: calc(100% + 8px);
   right: 0;
   width: min(300px, 88vw);
-  max-height: 340px;
+  max-height: min(400px, 70vh);
   background: #0c0e19;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -603,17 +820,28 @@ img {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform-origin: top right;
+  animation: psa-scale-in 0.16s ease-out;
 }
 .psa-coin-search-wrap {
+  position: relative;
   padding: var(--space-3);
   border-bottom: 1px solid var(--border);
+}
+.psa-coin-search-icon {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  pointer-events: none;
 }
 .psa-coin-search {
   width: 100%;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 9px 12px;
+  padding: 9px 12px 9px 34px;
   color: var(--text);
   font-size: 14px;
 }
@@ -624,6 +852,14 @@ img {
 .psa-coin-list {
   overflow-y: auto;
   padding: var(--space-2);
+}
+.psa-coin-group-label {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
 .psa-coin-option {
   display: flex;
@@ -638,10 +874,14 @@ img {
   text-align: left;
   cursor: pointer;
   min-height: 44px;
+  transition: background 0.12s;
 }
 .psa-coin-option:hover,
 .psa-coin-option.is-active {
   background: var(--panel-hover);
+}
+.psa-coin-option.is-selected {
+  background: var(--primary-soft);
 }
 .psa-coin-option-name {
   display: flex;
@@ -658,6 +898,12 @@ img {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.psa-coin-option-check {
+  margin-left: auto;
+  color: var(--primary);
+  font-size: 13px;
+  flex-shrink: 0;
 }
 .psa-coin-empty {
   padding: var(--space-5) var(--space-3);
@@ -737,17 +983,17 @@ img {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  font-size: 15px;
-  transition: color 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 .psa-icon-btn:hover:not(:disabled) {
   color: var(--primary);
+  background: rgba(255, 255, 255, 0.04);
 }
 .psa-icon-btn.is-success {
   color: var(--success);
@@ -757,19 +1003,42 @@ img {
   cursor: default;
 }
 /* Varian dengan label teks (Salin/Bagikan/Favorit) — lebar menyesuaikan */
-/* isi, bukan kotak 32px tetap, supaya teksnya tidak numpuk.             */
+/* isi, bukan kotak tetap, supaya teksnya tidak numpuk.                  */
 .psa-icon-btn.has-label {
   width: auto;
   height: auto;
+  min-height: 40px;
   gap: 6px;
   padding: 8px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   font-size: 13px;
   white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
 }
 .psa-icon-btn.has-label:hover:not(:disabled) {
   border-color: var(--primary);
+  background: none;
+}
+.psa-icon-btn.has-label.is-success {
+  border-color: var(--success);
+}
+.psa-icon-btn.has-label.is-fav {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.psa-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding: 0 var(--space-6) var(--space-5);
+}
+@media (max-width: 640px) {
+  .psa-result-actions {
+    padding: 0 18px var(--space-4);
+  }
 }
 
 /* ============================================================ */
@@ -837,26 +1106,58 @@ img {
   opacity: 0.6;
   cursor: wait;
 }
+.psa-chip-scroll {
+  margin-top: var(--space-3);
+}
 .psa-chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: var(--space-3);
 }
 .psa-chip {
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   color: var(--text-muted);
   font-size: 13px;
-  padding: 7px 13px;
+  padding: 8px 14px;
   cursor: pointer;
-  min-height: 36px;
-  transition: border-color 0.15s, color 0.15s;
+  min-height: 38px;
+  white-space: nowrap;
+  transition: border-color 0.18s, color 0.18s, background 0.18s;
 }
 .psa-chip:hover {
-  border-color: var(--secondary);
+  border-color: var(--primary);
   color: var(--text);
+  background: var(--primary-soft);
+}
+.psa-chip-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.psa-chip-tag {
+  color: var(--text-faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+@media (max-width: 640px) {
+  .psa-chip-scroll {
+    margin-left: calc(-1 * var(--space-4));
+    margin-right: calc(-1 * var(--space-4));
+    padding: 0 var(--space-4);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .psa-chip-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .psa-chip-row {
+    flex-wrap: nowrap;
+  }
 }
 
 /* ============================================================ */
@@ -931,6 +1232,9 @@ img {
   color: var(--text-muted);
 }
 .psa-history-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: none;
   color: var(--text-faint);
@@ -944,38 +1248,110 @@ img {
 .psa-history-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
 }
 .psa-history-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
-  background: rgba(8, 11, 20, 0.4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  color: var(--text);
-  font-size: 13.5px;
-  cursor: pointer;
-  text-align: left;
-  min-height: 44px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.psa-history-item:last-child {
+  border-bottom: none;
 }
 .psa-history-item:hover {
-  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.02);
+}
+.psa-history-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  padding: 4px;
+}
+.psa-history-icons {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.psa-history-icons > span:last-child,
+.psa-history-icons > img:last-child {
+  margin-left: -8px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+}
+.psa-history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 .psa-history-pair {
-  color: var(--text-muted);
-}
-.psa-history-value {
-  color: var(--primary);
   font-weight: 600;
-  flex-shrink: 0;
+  font-size: 13.5px;
+}
+.psa-history-amounts {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .psa-history-time {
-  font-size: 11px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
   color: var(--text-faint);
-  margin-left: var(--space-2);
+  white-space: nowrap;
+}
+.psa-history-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.psa-history-item:hover .psa-history-actions,
+.psa-history-item:focus-within .psa-history-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .psa-history-actions {
+    opacity: 1;
+  }
+}
+.psa-history-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: 10px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.psa-history-more:hover {
+  color: var(--primary);
+}
+.psa-history-more svg {
+  transition: transform 0.18s ease;
+}
+.psa-history-more svg.is-open {
+  transform: rotate(180deg);
 }
 .psa-history-empty {
   text-align: center;
@@ -987,22 +1363,89 @@ img {
 /* ============================================================ */
 /*  Toast                                                          */
 /* ============================================================ */
-.psa-toast {
+/* Ditumpuk di pojok kanan atas (bukan tengah bawah) supaya tidak pernah */
+/* menutupi converter atau tombol bantuan yang mengambang di bawah.      */
+.psa-toast-stack {
   position: fixed;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
+  top: calc(var(--header-h) + 12px);
+  right: 16px;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(340px, calc(100vw - 32px));
+}
+.psa-toast {
   background: #0c0e19;
   border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--success);
   border-radius: var(--radius-md);
-  padding: 12px 18px;
-  font-size: 13.5px;
+  padding: 12px 12px 12px 14px;
+  font-size: 13px;
   color: var(--text);
   box-shadow: var(--shadow-md);
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
+  animation: psa-toast-in 0.22s ease-out;
+}
+@keyframes psa-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.psa-toast-error {
+  border-left-color: var(--danger);
+}
+.psa-toast-info {
+  border-left-color: var(--secondary);
+}
+.psa-toast-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--success);
+}
+.psa-toast-error .psa-toast-icon {
+  color: var(--danger);
+}
+.psa-toast-info .psa-toast-icon {
+  color: var(--secondary);
+}
+.psa-toast-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.psa-toast-title {
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.psa-toast-text {
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.psa-toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}
+.psa-toast-close:hover {
+  color: var(--text);
 }
 
 /* ============================================================ */
@@ -1063,8 +1506,8 @@ img {
 .psa-help-bot {
   position: relative;
   z-index: 50;
-  width: 76px;
-  height: 76px;
+  width: 68px;
+  height: 68px;
   background: none;
   border: none;
   color: var(--text);
@@ -1089,7 +1532,7 @@ img {
   width: 100%;
   height: 100%;
   display: flex;
-  animation: psa-mascot-bob 0.6s ease-in-out infinite;
+  animation: psa-mascot-bob 1.4s ease-in-out infinite;
 }
 @keyframes psa-mascot-bob {
   0%,
@@ -1097,7 +1540,7 @@ img {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1259,30 +1702,180 @@ img {
 }
 
 /* ============================================================ */
+/*  Section umum (Popular pairs, Why Panca Swap, About)           */
+/* ============================================================ */
+.psa-section {
+  padding: 0 var(--space-1);
+}
+.psa-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+.psa-popular-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+.psa-popular-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.psa-popular-card:hover {
+  border-color: var(--border-strong);
+  background: var(--panel-hover);
+  transform: translateY(-2px);
+}
+.psa-popular-icons {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.psa-popular-icons > span:last-child,
+.psa-popular-icons > img:last-child {
+  margin-left: -8px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+}
+.psa-popular-pair {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.psa-why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+.psa-why-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.psa-why-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+  color: var(--primary);
+  margin-bottom: var(--space-3);
+}
+.psa-why-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.psa-why-card-text {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.psa-about {
+  padding: var(--space-5);
+}
+.psa-about-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.psa-about-text {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+.psa-about-privacy {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  line-height: 1.7;
+}
+
+/* ============================================================ */
 /*  Footer                                                         */
 /* ============================================================ */
 .psa-footer {
   position: relative;
   z-index: 1;
   border-top: 1px solid var(--border);
-  padding: var(--space-4) var(--space-5);
+  background: rgba(255, 255, 255, 0.015);
+  /* Bawah dilebihkan supaya maskot yang mengambang (fixed, jalan sampai  */
+  /* ujung kiri layar) selalu punya jalur kosong di ujung halaman —      */
+  /* tidak pernah menimpa logo/link footer saat discroll sampai bawah.   */
+  padding: var(--space-6) var(--space-6) calc(var(--space-5) + 110px);
   text-align: center;
 }
-.psa-footer p {
-  margin: 0;
-  font-size: 12.5px;
+.psa-footer-inner {
+  max-width: var(--shell-w);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.psa-footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 13.5px;
+}
+.psa-footer-logo {
+  display: inline-flex;
+  color: var(--primary);
+}
+.psa-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+}
+.psa-footer-links a {
   color: var(--text-faint);
-}
-.psa-footer a {
-  color: var(--secondary);
   text-decoration: none;
+  font-size: 12.5px;
 }
-.psa-footer a:hover {
-  text-decoration: underline;
+.psa-footer-links a:hover {
+  color: var(--primary);
+}
+.psa-footer-copyright {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  white-space: nowrap;
 }
 .psa-footer-disclaimer {
-  margin-top: 6px !important;
+  max-width: var(--shell-w);
+  margin: var(--space-3) auto 0;
+  font-size: 12px;
+  color: var(--text-faint);
   opacity: 0.75;
+}
+@media (max-width: 640px) {
+  .psa-footer {
+    padding: var(--space-5) var(--space-4) calc(var(--space-4) + 90px);
+  }
+  .psa-footer-inner {
+    flex-direction: column;
+    text-align: center;
+  }
 }
 
 /* ============================================================ */
@@ -1290,7 +1883,7 @@ img {
 /* ============================================================ */
 @media (max-width: 720px) {
   .psa-main {
-    padding: var(--space-6) var(--space-4) var(--space-5);
+    padding: var(--space-6) 0 var(--space-5);
   }
 }
 @media (max-width: 640px) {
@@ -1300,27 +1893,70 @@ img {
   .psa-menu-btn {
     display: flex;
   }
-  .psa-header-inner {
-    padding: 0 var(--space-4);
+  .psa-live-text {
+    display: none;
+  }
+  .psa-live-indicator {
+    padding: 6px;
+  }
+  .psa-ticker-viewport {
+    display: none;
+  }
+  .psa-ticker-mobile {
+    display: flex;
+  }
+  .psa-toast-stack {
+    top: calc(var(--header-h) + 8px);
+    right: 10px;
+    left: 10px;
+    width: auto;
   }
   .psa-help-bot-track {
     bottom: 14px;
+    /* Jalur lebih pendek di layar sempit — kartu-kartu di sini penuh     */
+    /* selebar layar, jadi maskot cukup mondar-mandir dekat pojok kiri    */
+    /* saja supaya tidak keseringan menimpa teks di tengah konten.        */
+    animation-name: psa-mascot-walk-mobile;
   }
   .psa-help-bot-track.is-docked {
     right: 14px;
   }
   .psa-help-bot {
-    width: 60px;
-    height: 60px;
-    font-size: 18px;
+    width: 56px;
+    height: 56px;
   }
   .psa-help-panel {
     right: 14px;
     bottom: 78px;
   }
 }
+@keyframes psa-mascot-walk-mobile {
+  0% {
+    left: 4%;
+    transform: scaleX(1);
+  }
+  47% {
+    left: 38%;
+    transform: scaleX(1);
+  }
+  50% {
+    left: 38%;
+    transform: scaleX(-1);
+  }
+  97% {
+    left: 4%;
+    transform: scaleX(-1);
+  }
+  100% {
+    left: 4%;
+    transform: scaleX(1);
+  }
+}
 @media (max-width: 420px) {
   .psa-logo-tagline {
+    display: none;
+  }
+  .psa-live-indicator {
     display: none;
   }
   .psa-coin-panel {

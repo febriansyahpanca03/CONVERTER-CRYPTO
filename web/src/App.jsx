@@ -9,6 +9,17 @@ import HistoryPanel from "./components/HistoryPanel.jsx";
 import Toast from "./components/Toast.jsx";
 import HelpBot from "./components/HelpBot.jsx";
 import { COINS, known } from "./data/assets.js";
+import CoinIcon from "./components/CoinIcon.jsx";
+import {
+  IconCopy,
+  IconShare,
+  IconStar,
+  IconCheck,
+  IconSwapVertical,
+  IconTrendingUp,
+  IconMessageCircle,
+  IconZap,
+} from "./components/Icons.jsx";
 import { parseWithModel, parseFallback, fetchRates, fetchIcons } from "./lib/api.js";
 import { formatAmountSafe } from "./lib/format.js";
 import {
@@ -37,9 +48,12 @@ export default function App() {
   const [icons, setIcons] = useState({});
   const [history, setHistory] = useState(() => loadHistory());
   const [favorites, setFavorites] = useState(() => loadFavorites());
-  const [toast, setToast] = useState("");
+  const [toasts, setToasts] = useState([]);
+  const [justCopied, setJustCopied] = useState(false);
 
-  const toastTimer = useRef(null);
+  const toastTimers = useRef(new Map());
+  const toastSeq = useRef(0);
+  const copiedTimer = useRef(null);
   /* Request harga yang sedang berjalan — dibatalkan setiap kali convert() */
   /* dipanggil lagi, biar respons lama yang telat nggak menimpa hasil     */
   /* yang lebih baru saat pengguna ganti aset dengan cepat.               */
@@ -79,10 +93,20 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function showToast(text) {
-    clearTimeout(toastTimer.current);
-    setToast(text);
-    toastTimer.current = setTimeout(() => setToast(""), 2200);
+  /* Maksimal 3 toast sekaligus, tiap satu hilang sendiri lewat timer-nya */
+  /* masing-masing (bukan satu timer global) — jadi toast baru tidak      */
+  /* memotong umur toast lain yang masih tampil.                          */
+  function showToast(text, tone = "success") {
+    const id = ++toastSeq.current;
+    setToasts((prev) => [...prev, { id, text, tone }].slice(-3));
+    const timer = setTimeout(() => dismissToast(id), 4000);
+    toastTimers.current.set(id, timer);
+  }
+
+  function dismissToast(id) {
+    clearTimeout(toastTimers.current.get(id));
+    toastTimers.current.delete(id);
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }
 
   function pushHistory(entry) {
@@ -229,7 +253,12 @@ export default function App() {
     const text = `${formatAmountSafe(result.value, result.to).full} ${result.to.toUpperCase()}`;
     navigator.clipboard
       ?.writeText(text)
-      .then(() => showToast("Hasilnya udah disalin"))
+      .then(() => {
+        showToast("Hasilnya udah disalin");
+        setJustCopied(true);
+        clearTimeout(copiedTimer.current);
+        copiedTimer.current = setTimeout(() => setJustCopied(false), 1800);
+      })
       .catch(() => {});
   }
 
@@ -269,148 +298,249 @@ export default function App() {
         <MarketTicker onSelect={onTickerSelect} />
 
         <main className="psa-main">
-          <div className="psa-hero">
-            <h1 className="psa-h1">Panca Swap Agent</h1>
-            <p className="psa-subtitle">
-              Ketik aja apa yang mau kamu hitung, atau pilih sendiri asetnya lewat dropdown. Harganya
-              selalu yang terbaru, langsung dari pasar.
-            </p>
-          </div>
-
-          <div className="psa-stack">
-            <div>
-              <Converter
-                amount={amount}
-                onAmountChange={(v) => {
-                  setAmount(v);
-                  if (amountError) setAmountError("");
-                }}
-                fromSym={fromSym}
-                onFromChange={setFromSym}
-                toSym={toSym}
-                onToChange={setToSym}
-                onSwap={swapDirection}
-                onConvert={() => convert()}
-                status={status}
-                result={result}
-                amountError={amountError}
-                icons={icons}
-              />
-              <PriceMeta
-                status={status}
-                result={result}
-                message={message}
-                offline={offline}
-                fromSym={fromSym}
-                toSym={toSym}
-                onRefresh={() => convert()}
-              />
-              {status === "done" && result && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 8,
-                    justifyContent: "center",
-                    padding: "0 var(--space-5) var(--space-5)",
-                  }}
-                >
-                  <button
-                    className="psa-icon-btn has-label"
-                    onClick={copyResult}
-                    title="Salin hasil"
-                    aria-label="Salin hasil"
-                  >
-                    <span aria-hidden="true">⧉</span> Salin
-                  </button>
-                  <button
-                    className="psa-icon-btn has-label"
-                    onClick={shareResult}
-                    title="Bagikan hasil"
-                    aria-label="Bagikan hasil"
-                  >
-                    <span aria-hidden="true">↗</span> Bagikan
-                  </button>
-                  <button
-                    className="psa-icon-btn has-label"
-                    onClick={toggleFavorite}
-                    title={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
-                    aria-label={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
-                    style={isFav ? { color: "var(--warning)", borderColor: "var(--warning)" } : undefined}
-                  >
-                    <span aria-hidden="true">{isFav ? "★" : "☆"}</span> Favorit
-                  </button>
-                </div>
-              )}
+          <div className="psa-shell">
+            <div className="psa-hero">
+              <h1 className="psa-h1">Konversi crypto dengan lebih cepat</h1>
+              <p className="psa-subtitle">
+                Pakai form biasa, atau ketik perintah kayak “250 USDT ke ETH” — harganya selalu
+                real-time.
+              </p>
             </div>
 
-            <QuickCommand query={query} onQueryChange={setQuery} onRun={runQuickCommand} status={status} />
-
-            {favorites.length > 0 && (
-              <div className="psa-card psa-quick">
-                <div className="psa-quick-head">
-                  <h2 className="psa-quick-title">Pasangan favorit</h2>
-                </div>
-                <div className="psa-chip-row">
-                  {favorites.map((f) => (
+            <div className="psa-stack">
+              <div className="psa-converter-shell" id="converter">
+                <Converter
+                  amount={amount}
+                  onAmountChange={(v) => {
+                    setAmount(v);
+                    if (amountError) setAmountError("");
+                  }}
+                  fromSym={fromSym}
+                  onFromChange={setFromSym}
+                  toSym={toSym}
+                  onToChange={setToSym}
+                  onSwap={swapDirection}
+                  onConvert={() => convert()}
+                  status={status}
+                  result={result}
+                  amountError={amountError}
+                  icons={icons}
+                />
+                <PriceMeta
+                  status={status}
+                  result={result}
+                  message={message}
+                  offline={offline}
+                  fromSym={fromSym}
+                  toSym={toSym}
+                  onRefresh={() => convert()}
+                />
+                {status === "done" && result && (
+                  <div className="psa-result-actions">
                     <button
-                      key={`${f.from}-${f.to}`}
-                      className="psa-chip"
-                      onClick={() => convert({ from: f.from, to: f.to, amount: amount || "1" })}
+                      className={`psa-icon-btn has-label ${justCopied ? "is-success" : ""}`}
+                      onClick={copyResult}
+                      title="Salin hasil"
+                      aria-label="Salin hasil"
                     >
-                      {f.from.toUpperCase()} → {f.to.toUpperCase()}
+                      {justCopied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                      {justCopied ? "Disalin" : "Salin"}
                     </button>
-                  ))}
-                </div>
+                    <button
+                      className="psa-icon-btn has-label"
+                      onClick={shareResult}
+                      title="Bagikan hasil"
+                      aria-label="Bagikan hasil"
+                    >
+                      <IconShare size={16} />
+                      Bagikan
+                    </button>
+                    <button
+                      className={`psa-icon-btn has-label ${isFav ? "is-fav" : ""}`}
+                      onClick={toggleFavorite}
+                      title={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
+                      aria-label={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
+                    >
+                      <IconStar size={16} filled={isFav} />
+                      Favorit
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
 
-            <HistoryPanel history={history} onReuse={reuseHistory} onClear={clearHistory} />
+              <QuickCommand query={query} onQueryChange={setQuery} onRun={runQuickCommand} status={status} />
 
-            <section id="about" className="psa-card" style={{ padding: "var(--space-5)" }}>
-              <h2 style={{ fontSize: 16, margin: "0 0 8px" }}>Tentang Panca Swap Agent</h2>
-              <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7 }}>
-                Ini sebenarnya cuma kalkulator, bukan exchange beneran. Ketik kalimat biasa kayak "250
-                USDT ke ETH" atau pilih sendiri asetnya, nanti dihitungin pakai harga dari CoinGecko.
-                Nggak ada dompet yang tersambung, nggak ada dana yang disimpan, dan nggak ada transaksi
-                asli yang jalan — murni buat lihat-lihat kurs aja.
-              </p>
-              <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "var(--text-faint)", lineHeight: 1.7 }}>
-                Soal data: riwayat, favorit, dan pasangan aset terakhir kamu cuma disimpan di
-                browser kamu sendiri (localStorage), bukan di server. Nggak ada analytics atau
-                pelacakan apa pun di situs ini.
-              </p>
-            </section>
+              {favorites.length > 0 && (
+                <div className="psa-card psa-quick">
+                  <div className="psa-quick-head">
+                    <h2 className="psa-quick-title">Pasangan favorit</h2>
+                  </div>
+                  <div className="psa-chip-row">
+                    {favorites.map((f) => (
+                      <button
+                        key={`${f.from}-${f.to}`}
+                        className="psa-chip"
+                        onClick={() => convert({ from: f.from, to: f.to, amount: amount || "1" })}
+                      >
+                        {f.from.toUpperCase()} → {f.to.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <HistoryPanel
+                history={history}
+                onReuse={reuseHistory}
+                onClear={clearHistory}
+                icons={icons}
+              />
+
+              <PopularPairs icons={icons} onSelect={(f, t) => convert({ from: f, to: t, amount: amount || "1" })} />
+
+              <WhyPancaSwap />
+
+              <section id="about" className="psa-card psa-about">
+                <h2 className="psa-about-title">Tentang Panca Swap</h2>
+                <p className="psa-about-text">
+                  Ini sebenarnya cuma kalkulator, bukan exchange beneran. Ketik kalimat biasa kayak
+                  "250 USDT ke ETH" atau pilih sendiri asetnya, nanti dihitungin pakai harga dari
+                  CoinGecko. Nggak ada dompet yang tersambung, nggak ada dana yang disimpan, dan
+                  nggak ada transaksi asli yang jalan — murni buat lihat-lihat kurs aja.
+                </p>
+                <p className="psa-about-privacy">
+                  Soal data: riwayat, favorit, dan pasangan aset terakhir kamu cuma disimpan di
+                  browser kamu sendiri (localStorage), bukan di server. Nggak ada analytics atau
+                  pelacakan apa pun di situs ini.
+                </p>
+              </section>
+            </div>
           </div>
         </main>
 
-        <footer className="psa-footer">
-          <p>
-            Panca Swap Agent · Harga oleh{" "}
-            <a href="https://www.coingecko.com" target="_blank" rel="noopener">
-              CoinGecko
-            </a>{" "}
-            · Parsing bahasa oleh{" "}
-            <a href="https://groq.com" target="_blank" rel="noopener">
-              Groq
-            </a>{" "}
-            ·{" "}
-            <a
-              href="https://github.com/febriansyahpanca03/CONVERTER-CRYPTO/issues"
-              target="_blank"
-              rel="noopener"
-            >
-              Laporkan masalah
-            </a>
-          </p>
-          <p className="psa-footer-disclaimer">
-            Data hanya untuk tujuan informasi, bukan nasihat finansial.
-          </p>
-        </footer>
+        <SiteFooter />
       </div>
 
       <HelpBot />
-      <Toast message={toast} />
+      <div className="psa-toast-stack" aria-live="polite">
+        {toasts.map((t) => (
+          <Toast key={t.id} text={t.text} tone={t.tone} onClose={() => dismissToast(t.id)} />
+        ))}
+      </div>
     </div>
+  );
+}
+
+/* S: pasangan populer — jalan pintas ke pasangan yang paling sering dicari. */
+const POPULAR_PAIRS = [
+  { from: "btc", to: "idr" },
+  { from: "eth", to: "usdt" },
+  { from: "usdt", to: "idr" },
+  { from: "sol", to: "usdt" },
+];
+
+function PopularPairs({ icons, onSelect }) {
+  return (
+    <section className="psa-section" aria-labelledby="psa-popular-title">
+      <h2 id="psa-popular-title" className="psa-section-title">
+        Pasangan populer
+      </h2>
+      <div className="psa-popular-grid">
+        {POPULAR_PAIRS.map((p) => {
+          const fromMeta = COINS[p.from];
+          const toMeta = COINS[p.to];
+          return (
+            <button
+              key={`${p.from}-${p.to}`}
+              className="psa-popular-card"
+              onClick={() => onSelect(p.from, p.to)}
+            >
+              <span className="psa-popular-icons">
+                <CoinIcon sym={p.from} size={22} iconUrl={fromMeta ? icons[fromMeta.id] : undefined} />
+                <CoinIcon sym={p.to} size={22} iconUrl={toMeta ? icons[toMeta.id] : undefined} />
+              </span>
+              <span className="psa-popular-pair">
+                {p.from.toUpperCase()} → {p.to.toUpperCase()}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* S: kenapa pakai Panca Swap — tiga keunggulan singkat, bukan section besar. */
+const WHY_ITEMS = [
+  {
+    Icon: IconTrendingUp,
+    title: "Harga real-time",
+    text: "Langsung dari CoinGecko, bukan angka basi.",
+  },
+  {
+    Icon: IconMessageCircle,
+    title: "Bahasa natural",
+    text: "Ketik “250 USDT ke ETH”, nggak perlu isi form.",
+  },
+  {
+    Icon: IconZap,
+    title: "Cepat & simpel",
+    text: "Nggak ada akun, nggak ada dompet, langsung pakai.",
+  },
+];
+
+function WhyPancaSwap() {
+  return (
+    <section className="psa-section" aria-labelledby="psa-why-title">
+      <h2 id="psa-why-title" className="psa-section-title">
+        Kenapa Panca Swap
+      </h2>
+      <div className="psa-why-grid">
+        {WHY_ITEMS.map(({ Icon, title, text }) => (
+          <div className="psa-why-card" key={title}>
+            <span className="psa-why-icon">
+              <Icon size={20} />
+            </span>
+            <h3 className="psa-why-card-title">{title}</h3>
+            <p className="psa-why-card-text">{text}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SiteFooter() {
+  const year = new Date().getFullYear();
+  return (
+    <footer className="psa-footer">
+      <div className="psa-footer-inner">
+        <div className="psa-footer-brand">
+          <span className="psa-footer-logo" aria-hidden="true">
+            <IconSwapVertical size={16} />
+          </span>
+          <span className="psa-footer-name">Panca Swap</span>
+        </div>
+
+        <nav className="psa-footer-links" aria-label="Tautan footer">
+          <a href="#converter">Converter</a>
+          <a href="https://www.coingecko.com" target="_blank" rel="noopener">
+            Data Source
+          </a>
+          <a href="#about">Privacy</a>
+          <a href="#about">Disclaimer</a>
+          <a
+            href="https://github.com/febriansyahpanca03/CONVERTER-CRYPTO/issues"
+            target="_blank"
+            rel="noopener"
+          >
+            Report Issue
+          </a>
+        </nav>
+
+        <p className="psa-footer-copyright">© {year} Panca Swap. Data harga dari CoinGecko.</p>
+      </div>
+      <p className="psa-footer-disclaimer">Data hanya untuk tujuan informasi, bukan nasihat finansial.</p>
+    </footer>
   );
 }

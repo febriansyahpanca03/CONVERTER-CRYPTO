@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { askAssistant } from "../lib/api.js";
+import { IconSend } from "./Icons.jsx";
 
 const GREETING = {
   role: "assistant",
@@ -197,7 +198,7 @@ export default function HelpBot() {
               aria-label="Kirim pertanyaan"
               title="Kirim"
             >
-              ➤
+              <IconSend size={14} />
             </button>
           </div>
         </div>
@@ -209,10 +210,10 @@ export default function HelpBot() {
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label={open ? "Tutup asisten" : "Buka asisten bantuan"}
-          title="Asisten bantuan"
+          title="Butuh bantuan?"
         >
           <span className="psa-help-bot-bob">
-            <AnimatedMascot size={76} />
+            <AnimatedMascot size={68} />
           </span>
         </button>
       </div>

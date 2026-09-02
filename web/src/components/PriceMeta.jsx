@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatAmount, relativeTime, priceStatus } from "../lib/format.js";
+import { IconRefresh } from "./Icons.jsx";
 
 const STATUS_LABEL = {
   live: "Live",
@@ -45,7 +46,7 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
             {badgeText}
           </span>
           <button className="psa-icon-btn" onClick={onRefresh} title="Coba lagi" aria-label="Coba ambil harga lagi">
-            ⟳
+            <IconRefresh size={16} />
           </button>
         </div>
         <p className="psa-meta-disclaimer" role="alert">
@@ -80,7 +81,7 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
             title="Segarkan harga terbaru"
             aria-label="Segarkan harga terbaru"
           >
-            ⟳
+            <IconRefresh size={16} />
           </button>
         </div>
         <p className="psa-meta-disclaimer">
