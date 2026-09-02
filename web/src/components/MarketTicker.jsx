@@ -60,10 +60,10 @@ export default function MarketTicker({ onSelect }) {
 
   return (
     <div className="psa-ticker" id="market" role="region" aria-label="Harga pasar berjalan">
-      <span className="psa-ticker-label">
+      <h2 className="psa-ticker-label">
         <span className="psa-ticker-dot" aria-hidden="true" />
         Market
-      </span>
+      </h2>
       <div className="psa-ticker-viewport">
         <div className="psa-ticker-track">
           {renderItems("a")}

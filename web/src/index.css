@@ -64,6 +64,11 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
 button,
 input {
   font-family: inherit;
@@ -499,6 +504,21 @@ img {
 .psa-result-value.is-primary {
   color: var(--primary);
 }
+@media (prefers-reduced-motion: no-preference) {
+  .psa-result-pop {
+    animation: psa-result-pop 0.35s ease-out;
+  }
+}
+@keyframes psa-result-pop {
+  from {
+    opacity: 0.4;
+    transform: translateY(2px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 
 .psa-convert-btn {
   width: 100%;
@@ -706,6 +726,11 @@ img {
   font-size: 12.5px;
   color: var(--text-faint);
   line-height: 1.6;
+}
+.psa-meta-disclaimer span[title] {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
 }
 .psa-icon-btn {
   background: none;
@@ -1254,6 +1279,10 @@ img {
 }
 .psa-footer a:hover {
   text-decoration: underline;
+}
+.psa-footer-disclaimer {
+  margin-top: 6px !important;
+  opacity: 0.75;
 }
 
 /* ============================================================ */

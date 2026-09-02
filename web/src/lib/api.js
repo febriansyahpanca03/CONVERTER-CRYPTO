@@ -2,7 +2,22 @@ import { COINS, TICKER_SYMS, isCoin, known } from "../data/assets.js";
 
 /* Semua fungsi di sini memanggil endpoint backend yang sama seperti     */
 /* sebelumnya (/api/parse, /api/price, /api/icons) — tidak ada endpoint  */
-/* baru maupun yang diubah.                                              */
+/* baru maupun yang diubah, cuma /api/assistant yang ditambahkan.        */
+
+const FETCH_TIMEOUT_MS = 12_000;
+
+/* Gabungkan timeout otomatis dengan signal luar (kalau ada) — dipakai   */
+/* App.jsx untuk membatalkan request lama saat pengguna ganti aset      */
+/* cepat, biar respons yang telat tidak menimpa hasil yang lebih baru.  */
+function withTimeout(outerSignal) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error("timeout")), FETCH_TIMEOUT_MS);
+  if (outerSignal) {
+    if (outerSignal.aborted) controller.abort(outerSignal.reason);
+    else outerSignal.addEventListener("abort", () => controller.abort(outerSignal.reason), { once: true });
+  }
+  return { signal: controller.signal, clear: () => clearTimeout(timer) };
+}
 
 /* Parser cadangan – dipakai kalau pemanggilan model gagal. */
 export function parseFallback(text) {
@@ -32,26 +47,13 @@ export async function parseWithModel(text) {
   return res.json();
 }
 
-export async function fetchRates(fromSym, toSym) {
-  const ids = new Set(["bitcoin"]);
-  const vs = new Set(["usd"]);
-  for (const s of [fromSym, toSym]) {
-    if (isCoin(s)) ids.add(COINS[s].id);
-    else vs.add(s);
-  }
-  const url = `/api/price?ids=${[...ids].join(",")}&vs=${[...vs].join(",")}`;
-
-  const res = await fetch(url);
-  if (res.status === 429)
-    throw new Error("Terlalu banyak permintaan ke CoinGecko. Tunggu sebentar.");
-  if (!res.ok) throw new Error(`Harga tidak bisa diambil (${res.status}).`);
-  const data = await res.json();
-
+/* Rumus konversi murni, dipisah dari fetchRates supaya bisa dites tanpa */
+/* jaringan. Semua aset dinilai dalam satuan BTC supaya satu rumus      */
+/* berlaku untuk kripto→kripto, kripto→fiat, maupun fiat→kripto.        */
+export function computeRate(data, fromSym, toSym) {
   const btc = data.bitcoin;
   if (!btc) throw new Error("Data harga tidak lengkap.");
 
-  // Semua aset dinilai dalam satuan BTC supaya satu rumus berlaku untuk
-  // kripto→kripto, kripto→fiat, maupun fiat→kripto.
   const inBTC = (sym) => {
     if (isCoin(sym)) {
       const p = data[COINS[sym].id]?.usd;
@@ -67,6 +69,35 @@ export async function fetchRates(fromSym, toSym) {
     rate: inBTC(fromSym) / inBTC(toSym),
     updatedAt: btc.last_updated_at ? btc.last_updated_at * 1000 : Date.now(),
   };
+}
+
+export async function fetchRates(fromSym, toSym, outerSignal) {
+  const ids = new Set(["bitcoin"]);
+  const vs = new Set(["usd"]);
+  for (const s of [fromSym, toSym]) {
+    if (isCoin(s)) ids.add(COINS[s].id);
+    else vs.add(s);
+  }
+  const url = `/api/price?ids=${[...ids].join(",")}&vs=${[...vs].join(",")}`;
+
+  const { signal, clear } = withTimeout(outerSignal);
+  let res;
+  try {
+    res = await fetch(url, { signal });
+  } catch (err) {
+    if (err.name === "AbortError" && !outerSignal?.aborted) {
+      throw new Error("Server tidak merespons, coba lagi.");
+    }
+    throw err;
+  } finally {
+    clear();
+  }
+
+  if (res.status === 429)
+    throw new Error("Terlalu banyak permintaan ke CoinGecko. Tunggu sebentar.");
+  if (!res.ok) throw new Error(`Harga tidak bisa diambil (${res.status}).`);
+  const data = await res.json();
+  return computeRate(data, fromSym, toSym);
 }
 
 export async function fetchTickerPrices() {

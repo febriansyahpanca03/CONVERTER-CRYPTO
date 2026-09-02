@@ -40,13 +40,19 @@ function AnimatedMascot({ size = 76 }) {
   const [index, setIndex] = useState(0);
   const [broken, setBroken] = useState(false);
 
-  // Hangatkan cache browser di awal supaya putaran pertama juga mulus,
-  // bukan cuma putaran kedua dan seterusnya.
+  // Hangatkan cache browser supaya putaran pertama juga mulus — tapi
+  // ditunda sampai browser idle, biar 86 request gambar ini nggak ikut
+  // rebutan bandwidth sama aset penting (JS/CSS/font) pas halaman baru dibuka.
   useEffect(() => {
-    MASCOT_FRAMES.forEach((src) => {
-      const img = new Image();
-      img.src = src;
+    const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 200));
+    const cancelIdle = window.cancelIdleCallback || clearTimeout;
+    const id = idle(() => {
+      MASCOT_FRAMES.forEach((src) => {
+        const img = new Image();
+        img.src = src;
+      });
     });
+    return () => cancelIdle(id);
   }, []);
 
   useEffect(() => {

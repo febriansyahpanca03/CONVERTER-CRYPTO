@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import CoinSelect from "./CoinSelect.jsx";
-import { formatAmount } from "../lib/format.js";
+import { formatAmountSafe } from "../lib/format.js";
 
 /* Mode utama: input jumlah + pilih aset asal/tujuan secara eksplisit,   */
 /* bukan cuma mengandalkan kalimat bebas. Ini yang jadi pusat perhatian */
@@ -22,6 +22,7 @@ export default function Converter({
   const loading = status === "loading";
   const showResult = status === "done" && result;
   const amountRef = useRef(null);
+  const resultDisplay = showResult ? formatAmountSafe(result.value, toSym) : null;
 
   useEffect(() => {
     amountRef.current?.focus();
@@ -29,6 +30,7 @@ export default function Converter({
 
   return (
     <div className="psa-card psa-converter" id="converter">
+      <h2 className="visually-hidden">Converter</h2>
       <div className="psa-field">
         <div className="psa-field-label">Kamu bayar</div>
         <div className="psa-field-row">
@@ -72,8 +74,13 @@ export default function Converter({
       <div className="psa-field">
         <div className="psa-field-label">Kamu dapat ≈</div>
         <div className="psa-field-row">
-          <span className={`psa-result-value ${showResult ? "is-primary" : ""}`} aria-live="polite">
-            {loading ? "…" : showResult ? formatAmount(result.value, toSym) : "0"}
+          <span
+            key={showResult ? `${result.from}-${result.to}-${result.value}-${result.updatedAt}` : "empty"}
+            className={`psa-result-value ${showResult ? "is-primary psa-result-pop" : ""}`}
+            aria-live="polite"
+            title={resultDisplay?.isApprox ? `Nilai lengkap: ${resultDisplay.full} ${toSym.toUpperCase()}` : undefined}
+          >
+            {loading ? "…" : resultDisplay ? resultDisplay.text : "0"}
           </span>
           <CoinSelect value={toSym} onChange={onToChange} icons={icons} label="Aset tujuan" />
         </div>

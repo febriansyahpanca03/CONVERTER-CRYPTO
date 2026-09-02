@@ -7,7 +7,7 @@ export default function HistoryPanel({ history, onReuse, onClear }) {
   return (
     <div className="psa-card psa-history">
       <div className="psa-history-head">
-        <span className="psa-history-title">Riwayat terakhir</span>
+        <h2 className="psa-history-title">Riwayat terakhir</h2>
         {history.length > 0 && (
           <button className="psa-history-clear" onClick={onClear}>
             Hapus riwayat

@@ -85,7 +85,15 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
         </div>
         <p className="psa-meta-disclaimer">
           Ini harga pasar rata-rata. Kalau beneran ditukar di exchange, biasanya sedikit meleset
-          karena ada biaya jaringan dan slippage.
+          karena ada{" "}
+          <span title="Ongkos yang diambil jaringan blockchain buat memproses transaksi — besarnya beda-beda tergantung koinnya, di luar kendali situs ini.">
+            biaya jaringan
+          </span>{" "}
+          dan{" "}
+          <span title="Selisih antara harga yang kamu lihat dan harga yang benar-benar kepakai saat transaksi jalan — biasanya muncul kalau pasar lagi bergerak cepat atau likuiditasnya tipis.">
+            slippage
+          </span>
+          .
         </p>
       </div>
     );

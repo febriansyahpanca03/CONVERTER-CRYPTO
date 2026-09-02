@@ -10,8 +10,15 @@ import Toast from "./components/Toast.jsx";
 import HelpBot from "./components/HelpBot.jsx";
 import { COINS, known } from "./data/assets.js";
 import { parseWithModel, parseFallback, fetchRates, fetchIcons } from "./lib/api.js";
-import { formatAmount } from "./lib/format.js";
-import { loadHistory, saveHistory, loadFavorites, saveFavorites } from "./lib/storage.js";
+import { formatAmountSafe } from "./lib/format.js";
+import {
+  loadHistory,
+  saveHistory,
+  loadFavorites,
+  saveFavorites,
+  loadLastPair,
+  saveLastPair,
+} from "./lib/storage.js";
 
 const NOT_UNDERSTOOD =
   'Belum kebaca nih maksudnya. Coba tulis kayak "250 USDT ke ETH", atau pilih asetnya manual aja.';
@@ -33,6 +40,10 @@ export default function App() {
   const [toast, setToast] = useState("");
 
   const toastTimer = useRef(null);
+  /* Request harga yang sedang berjalan — dibatalkan setiap kali convert() */
+  /* dipanggil lagi, biar respons lama yang telat nggak menimpa hasil     */
+  /* yang lebih baru saat pengguna ganti aset dengan cepat.               */
+  const activeRequest = useRef(null);
 
   /* Ikon token asli, diambil sekali untuk seluruh daftar aset. */
   useEffect(() => {
@@ -44,17 +55,26 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  /* Sinkron dari URL (?from=&to=&amount=) supaya hasil bisa dibagikan. */
+  /* Urutan prioritas pasangan awal: parameter URL (buat hasil yang       */
+  /* dibagikan) > pasangan terakhir yang dipakai pengguna > default.      */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const f = params.get("from")?.toLowerCase();
     const t = params.get("to")?.toLowerCase();
     const a = params.get("amount");
-    if (f && known(f)) setFromSym(f);
-    if (t && known(t)) setToSym(t);
-    if (a) setAmount(a);
+
     if (f && t && known(f) && known(t)) {
+      setFromSym(f);
+      setToSym(t);
+      if (a) setAmount(a);
       convert({ from: f, to: t, amount: a || "1" });
+      return;
+    }
+
+    const last = loadLastPair();
+    if (last && known(last.from) && known(last.to)) {
+      setFromSym(last.from);
+      setToSym(last.to);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -117,15 +137,23 @@ export default function App() {
     setToSym(to);
     setAmount(String(rawAmount));
 
+    /* Batalkan request sebelumnya (kalau masih jalan) sebelum mulai yang baru. */
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+
     try {
-      const { rate, updatedAt } = await fetchRates(from, to);
+      const { rate, updatedAt } = await fetchRates(from, to, controller.signal);
+      if (controller.signal.aborted) return; // sudah ditimpa request yang lebih baru
       const value = amt * rate;
       const res = { amount: amt, from, to, rate, value, updatedAt };
       setResult(res);
       setStatus("done");
       pushHistory({ amount: amt, from, to, rate, value, at: Date.now() });
       updateUrl(from, to, amt);
+      saveLastPair(from, to);
     } catch (err) {
+      if (controller.signal.aborted) return; // dibatalkan karena ada request baru, bukan error asli
       setStatus("error");
       const isOffline = err.message?.includes("Failed to fetch");
       setOffline(isOffline);
@@ -197,7 +225,8 @@ export default function App() {
 
   function copyResult() {
     if (!result) return;
-    const text = `${formatAmount(result.value, result.to)} ${result.to.toUpperCase()}`;
+    // pakai nilai presisi penuh, bukan versi ringkas "< 0.000001" yang tampil di layar
+    const text = `${formatAmountSafe(result.value, result.to).full} ${result.to.toUpperCase()}`;
     navigator.clipboard
       ?.writeText(text)
       .then(() => showToast("Hasilnya udah disalin"))
@@ -280,6 +309,7 @@ export default function App() {
                 <div
                   style={{
                     display: "flex",
+                    flexWrap: "wrap",
                     gap: 8,
                     justifyContent: "center",
                     padding: "0 var(--space-5) var(--space-5)",
@@ -319,7 +349,7 @@ export default function App() {
             {favorites.length > 0 && (
               <div className="psa-card psa-quick">
                 <div className="psa-quick-head">
-                  <span className="psa-quick-title">Pasangan favorit</span>
+                  <h2 className="psa-quick-title">Pasangan favorit</h2>
                 </div>
                 <div className="psa-chip-row">
                   {favorites.map((f) => (
@@ -345,6 +375,11 @@ export default function App() {
                 Nggak ada dompet yang tersambung, nggak ada dana yang disimpan, dan nggak ada transaksi
                 asli yang jalan — murni buat lihat-lihat kurs aja.
               </p>
+              <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "var(--text-faint)", lineHeight: 1.7 }}>
+                Soal data: riwayat, favorit, dan pasangan aset terakhir kamu cuma disimpan di
+                browser kamu sendiri (localStorage), bukan di server. Nggak ada analytics atau
+                pelacakan apa pun di situs ini.
+              </p>
             </section>
           </div>
         </main>
@@ -358,7 +393,18 @@ export default function App() {
             · Parsing bahasa oleh{" "}
             <a href="https://groq.com" target="_blank" rel="noopener">
               Groq
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://github.com/febriansyahpanca03/CONVERTER-CRYPTO/issues"
+              target="_blank"
+              rel="noopener"
+            >
+              Laporkan masalah
             </a>
+          </p>
+          <p className="psa-footer-disclaimer">
+            Data hanya untuk tujuan informasi, bukan nasihat finansial.
           </p>
         </footer>
       </div>

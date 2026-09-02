@@ -8,7 +8,7 @@ export default function QuickCommand({ query, onQueryChange, onRun, status }) {
   return (
     <div className="psa-card psa-quick">
       <div className="psa-quick-head">
-        <span className="psa-quick-title">Quick Command</span>
+        <h2 className="psa-quick-title">Quick Command</h2>
         <span className="psa-quick-badge">Ketik bebas</span>
       </div>
       <div className="psa-quick-row">

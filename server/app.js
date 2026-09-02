@@ -12,32 +12,42 @@ const CG_KEY = process.env.COINGECKO_API_KEY || "";
 /* Catatan: di lingkungan serverless (mis. Vercel), Map ini per-instance */
 /* saja — bukan batas global lintas semua instance yang sedang aktif.   */
 
-const hits = new Map();
 const WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 20;
 
-function rateLimit(req, res, next) {
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.ip;
-  const now = Date.now();
-  const log = (hits.get(ip) || []).filter((t) => now - t < WINDOW_MS);
-  if (log.length >= MAX_PER_WINDOW) {
-    return res.status(429).json({ error: "Terlalu banyak permintaan." });
+/* Pabrik limiter — /api/parse & /api/assistant makan kredit Groq jadi   */
+/* jatahnya ketat, sedangkan /api/price & /api/icons cuma proxy ke cache */
+/* CoinGecko (di-poll ticker tiap 45 detik) jadi jatahnya lebih longgar, */
+/* dengan penyimpanan hit terpisah supaya keduanya tidak saling makan    */
+/* jatah punya endpoint lain.                                            */
+function createRateLimiter(maxPerWindow) {
+  const hits = new Map();
+
+  if (typeof setInterval !== "undefined") {
+    setInterval(() => {
+      const now = Date.now();
+      for (const [ip, log] of hits) {
+        const fresh = log.filter((t) => now - t < WINDOW_MS);
+        if (fresh.length) hits.set(ip, fresh);
+        else hits.delete(ip);
+      }
+    }, WINDOW_MS).unref?.();
   }
-  log.push(now);
-  hits.set(ip, log);
-  next();
+
+  return function rateLimit(req, res, next) {
+    const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.ip;
+    const now = Date.now();
+    const log = (hits.get(ip) || []).filter((t) => now - t < WINDOW_MS);
+    if (log.length >= maxPerWindow) {
+      return res.status(429).json({ error: "Terlalu banyak permintaan." });
+    }
+    log.push(now);
+    hits.set(ip, log);
+    next();
+  };
 }
 
-if (typeof setInterval !== "undefined") {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [ip, log] of hits) {
-      const fresh = log.filter((t) => now - t < WINDOW_MS);
-      if (fresh.length) hits.set(ip, fresh);
-      else hits.delete(ip);
-    }
-  }, WINDOW_MS).unref?.();
-}
+const rateLimit = createRateLimiter(20);
+const rateLimitPublicData = createRateLimiter(120);
 
 /* ---------- Membaca kalimat jadi JSON ------------------------------- */
 
@@ -175,7 +185,7 @@ app.post("/api/assistant", rateLimit, async (req, res) => {
 const priceCache = new Map();
 const PRICE_TTL_MS = 20_000;
 
-app.get("/api/price", async (req, res) => {
+app.get("/api/price", rateLimitPublicData, async (req, res) => {
   const ids = String(req.query.ids || "")
     .split(",")
     .filter((s) => /^[a-z0-9-]{1,40}$/.test(s))
@@ -224,7 +234,7 @@ app.get("/api/price", async (req, res) => {
 const iconCache = new Map();
 const ICON_TTL_MS = 24 * 60 * 60 * 1000;
 
-app.get("/api/icons", async (req, res) => {
+app.get("/api/icons", rateLimitPublicData, async (req, res) => {
   const ids = String(req.query.ids || "")
     .split(",")
     .filter((s) => /^[a-z0-9-]{1,40}$/.test(s))

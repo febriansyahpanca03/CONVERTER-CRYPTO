@@ -5,6 +5,7 @@ const HISTORY_KEY = "panca-swap-history";
 const HISTORY_MAX = 5;
 const FAVORITES_KEY = "panca-swap-favorites";
 const FAVORITES_MAX = 8;
+const LAST_PAIR_KEY = "panca-swap-last-pair";
 
 function safeGet(key) {
   try {
@@ -38,6 +39,24 @@ export function loadFavorites() {
 
 export function saveFavorites(list) {
   safeSet(FAVORITES_KEY, list.slice(0, FAVORITES_MAX));
+}
+
+export function loadLastPair() {
+  try {
+    const raw = localStorage.getItem(LAST_PAIR_KEY);
+    const val = raw ? JSON.parse(raw) : null;
+    return val && val.from && val.to ? val : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLastPair(from, to) {
+  try {
+    localStorage.setItem(LAST_PAIR_KEY, JSON.stringify({ from, to }));
+  } catch {
+    /* tidak fatal — cuma kenyamanan, bukan fitur inti */
+  }
 }
 
 export { HISTORY_MAX, FAVORITES_MAX };

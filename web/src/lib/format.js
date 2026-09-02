@@ -21,6 +21,23 @@ export function formatAmount(n, sym) {
   });
 }
 
+/* Untuk nilai kripto yang sangat kecil (mis. 0.0000003 BTC), formatAmount */
+/* akan membulatkannya jadi 0.00000000 dan terlihat seperti bug. Di sini  */
+/* kita tampilkan "< 0.000001" sebagai gantinya, tapi nilai lengkapnya    */
+/* tetap tersedia lewat `full` — dipakai sebagai tooltip (title) dan      */
+/* sebagai teks yang benar-benar disalin saat tombol Salin ditekan.       */
+export function formatAmountSafe(n, sym) {
+  const text = formatAmount(n, sym);
+  if (!isFiat(sym) && Number.isFinite(n) && n > 0 && n < 0.000001) {
+    return {
+      text: "< 0.000001",
+      full: n.toLocaleString("en-US", { maximumFractionDigits: 18 }),
+      isApprox: true,
+    };
+  }
+  return { text, full: text, isApprox: false };
+}
+
 /* Sama seperti formatAmount, tapi menambahkan awalan mata uang (Rp/$)   */
 /* khusus untuk fiat yang punya konvensi penulisan lokal.                */
 const PREFIX = { idr: "Rp", usd: "$" };
