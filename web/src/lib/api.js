@@ -135,4 +135,31 @@ export async function fetchIcons(ids) {
   return res.json();
 }
 
+/* Data historis buat grafik (garis = market_chart, candle = OHLC).      */
+/* `type` "line" balik { prices: [[ts,harga], ...] }, "candle" balik     */
+/* array [[ts,open,high,low,close], ...] langsung dari CoinGecko.        */
+export async function fetchChartData({ coinId, vsCurrency, days, type, signal: outerSignal }) {
+  const url = `/api/chart?id=${coinId}&vs=${vsCurrency}&days=${days}&type=${type}`;
+  const { signal, clear } = withTimeout(outerSignal);
+  let res;
+  try {
+    res = await fetch(url, { signal });
+  } catch (err) {
+    if (err.name === "AbortError" && !outerSignal?.aborted) {
+      throw new Error("Server tidak merespons, coba lagi.");
+    }
+    throw err;
+  } finally {
+    clear();
+  }
+
+  if (res.status === 429) {
+    const err = new Error("Batas permintaan data grafik ke CoinGecko tercapai. Coba lagi sebentar.");
+    err.isRateLimit = true;
+    throw err;
+  }
+  if (!res.ok) throw new Error(`Data grafik tidak bisa diambil (${res.status}).`);
+  return res.json();
+}
+
 export { known };

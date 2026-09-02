@@ -1414,6 +1414,346 @@ img {
 }
 
 /* ============================================================ */
+/*  Price Insight (grafik harga) — fitur sampingan, bukan dashboard      */
+/*  trading. Riwayat & Insight duduk berdampingan lewat .psa-insight-row */
+/*  di desktop; urutannya dibalik lewat `order` khusus di mobile supaya  */
+/*  chart muncul lebih dulu tanpa mengubah urutan DOM aslinya.           */
+/* ============================================================ */
+.psa-insight-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+@media (min-width: 860px) {
+  .psa-insight-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    align-items: start;
+  }
+}
+.psa-insight-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.psa-insight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.psa-insight-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.psa-insight-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Toggle Garis|Candle — surface netral untuk yang nonaktif, cyan cuma   */
+/* buat yang lagi aktif, sesuai aturan "cyan hanya untuk selected state". */
+.psa-chart-toggle {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.psa-chart-toggle-btn {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 30px;
+}
+.psa-chart-toggle-btn.is-active {
+  background: var(--primary);
+  color: #04222a;
+}
+.psa-chart-toggle-btn.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.psa-insight-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+}
+.psa-insight-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.psa-insight-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.psa-insight-change {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Periode 1J/24J/7H/30H/1T — kontrol TERPISAH dari toggle Garis/Candle. */
+.psa-chart-tf {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.psa-chart-tf::-webkit-scrollbar {
+  display: none;
+}
+.psa-chart-tf-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  min-height: 30px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.psa-chart-tf-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.psa-chart-tf-btn.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.psa-insight-chart-wrap {
+  position: relative;
+}
+.psa-chart-canvas {
+  width: 100%;
+}
+.psa-chart-dim {
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-chart-dim {
+    transition: none;
+  }
+}
+
+.psa-chart-skeleton {
+  display: flex;
+  align-items: flex-end;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.psa-chart-skeleton-bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--panel-hover) 25%, var(--surface-3) 37%, var(--panel-hover) 63%);
+  background-size: 400% 100%;
+  animation: psa-shimmer 1.4s ease infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-chart-skeleton-bar {
+    animation: none;
+  }
+}
+
+.psa-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: var(--space-4);
+  color: var(--text-faint);
+  font-size: 13px;
+}
+.psa-chart-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.psa-chart-retry:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Baris OHLC — SELALU tampil (bukan cuma pas hover), jadi info-nya bisa */
+/* diakses tanpa mouse. Isinya berubah waktu crosshair digeser.          */
+.psa-chart-ohlc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+.psa-chart-ohlc strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.psa-chart-ohlc-time {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.psa-insight-hilo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
+  color: var(--text-faint);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-2);
+}
+.psa-insight-hilo-row strong {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.psa-insight-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.psa-insight-detail-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.psa-insight-detail-btn:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================ */
+/*  Modal detail grafik                                            */
+/* ============================================================ */
+.psa-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(3, 5, 10, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  animation: psa-fade-in 0.15s ease-out;
+}
+.psa-modal {
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100vh - 2 * var(--space-4));
+  overflow-y: auto;
+  background: #0c0e19;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  animation: psa-scale-in 0.18s ease-out;
+}
+.psa-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.psa-chart-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.psa-modal-source {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+@media (max-width: 640px) {
+  /* Bottom sheet: nempel di bawah, bukan dialog mengambang di tengah. */
+  .psa-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .psa-modal {
+    max-width: none;
+    max-height: 88vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+    animation: psa-sheet-in 0.2s ease-out;
+  }
+  @keyframes psa-sheet-in {
+    from {
+      transform: translateY(24px);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+}
+
+/* Riwayat tampil dulu di desktop (kolom kiri), tapi di mobile Insight   */
+/* Harga didahulukan sesuai urutan yang diminta brief — dibalik lewat    */
+/* `order`, bukan mengubah urutan DOM (jadi tidak mengubah makna semantik). */
+@media (max-width: 859px) {
+  .psa-history {
+    order: 2;
+  }
+  .psa-insight-card {
+    order: 1;
+  }
+}
+
+/* ============================================================ */
 /*  Toast                                                          */
 /* ============================================================ */
 /* Ditumpuk di pojok kanan atas (bukan tengah bawah) supaya tidak pernah */

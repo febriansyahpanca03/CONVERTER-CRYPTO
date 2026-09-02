@@ -4,6 +4,7 @@ import Header from "./components/Header.jsx";
 import MarketTicker from "./components/MarketTicker.jsx";
 import Converter from "./components/Converter.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
+import PriceInsightCard from "./components/PriceInsightCard.jsx";
 import Toast from "./components/Toast.jsx";
 import HelpBot from "./components/HelpBot.jsx";
 import { COINS, known } from "./data/assets.js";
@@ -344,14 +345,17 @@ export default function App() {
                 </div>
               )}
 
-              <HistoryPanel
-                history={history}
-                onReuse={reuseHistory}
-                onClear={clearHistory}
-                icons={icons}
-              />
-
               <PopularPairs icons={icons} onSelect={(f, t) => convert({ from: f, to: t, amount: amount || "1" })} />
+
+              <div className="psa-insight-row">
+                <HistoryPanel
+                  history={history}
+                  onReuse={reuseHistory}
+                  onClear={clearHistory}
+                  icons={icons}
+                />
+                <PriceInsightCard fromSym={fromSym} toSym={toSym} icons={icons} />
+              </div>
 
               <WhyPancaSwap />
 

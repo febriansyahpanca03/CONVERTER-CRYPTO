@@ -274,6 +274,65 @@ app.get("/api/icons", rateLimitPublicData, async (req, res) => {
   }
 });
 
+/* ---------- Grafik harga (line = market_chart, candle = OHLC) ------- */
+/* Cache-nya bertingkat sesuai rentang: periode pendek (1 hari) sering   */
+/* berubah jadi TTL pendek, periode panjang (1 tahun) nyaris statis jadi */
+/* TTL lebih lama — supaya nggak boros panggilan ke CoinGecko.           */
+
+const chartCache = new Map();
+const ALLOWED_DAYS = new Set([1, 7, 30, 365]);
+const ALLOWED_TYPES = new Set(["line", "candle"]);
+
+function chartTtlFor(days) {
+  if (days <= 1) return 60_000;
+  if (days <= 30) return 5 * 60_000;
+  return 30 * 60_000;
+}
+
+app.get("/api/chart", rateLimitPublicData, async (req, res) => {
+  const id = String(req.query.id || "");
+  const vs = String(req.query.vs || "");
+  const days = Number(req.query.days);
+  const type = String(req.query.type || "");
+
+  if (!/^[a-z0-9-]{1,40}$/.test(id) || !/^[a-z]{2,5}$/.test(vs) || !ALLOWED_DAYS.has(days) || !ALLOWED_TYPES.has(type)) {
+    return res.status(400).json({ error: "Parameter grafik tidak valid." });
+  }
+
+  const key = `${type}|${id}|${vs}|${days}`;
+  const hit = chartCache.get(key);
+  const ttl = chartTtlFor(days);
+  if (hit && Date.now() - hit.at < ttl) {
+    res.set("x-cache", "hit");
+    return res.json(hit.body);
+  }
+
+  const path = type === "candle" ? "ohlc" : "market_chart";
+  const url = `https://api.coingecko.com/api/v3/coins/${id}/${path}?vs_currency=${vs}&days=${days}`;
+
+  try {
+    const r = await fetch(url, {
+      headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
+    });
+    if (!r.ok) {
+      if (hit) return res.json(hit.body); // sajikan data basi daripada gagal total
+      if (r.status === 429) return res.status(429).json({ error: "Batas API CoinGecko tercapai." });
+      return res.status(r.status).json({ error: `CoinGecko ${r.status}` });
+    }
+    const raw = await r.json();
+    // Dipangkas ke yang benar-benar dipakai chart — market_chart aslinya
+    // juga membawa market_caps yang tidak kita perlukan sama sekali.
+    const body = type === "candle" ? raw : { prices: raw.prices || [] };
+    chartCache.set(key, { at: Date.now(), body });
+    res.set("x-cache", "miss");
+    res.json(body);
+  } catch (err) {
+    console.error("chart", err);
+    if (hit) return res.json(hit.body);
+    res.status(502).json({ error: "Data grafik tidak bisa diambil." });
+  }
+});
+
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 export default app;

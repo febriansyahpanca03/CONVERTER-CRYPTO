@@ -68,6 +68,17 @@ export function formatClock(ts) {
   });
 }
 
+/* Waktu buat pembacaan OHLC/tooltip chart — tanggal + jam, cukup detail */
+/* buat titik grafik apa pun (dari candle 5 menit sampai candle 4 hari). */
+export function formatChartTime(ts) {
+  return new Date(ts).toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /* Status kesegaran data harga, murni dari timestamp asli CoinGecko —   */
 /* tidak pernah dikarang.                                               */
 export function priceStatus(updatedAt, now = Date.now()) {

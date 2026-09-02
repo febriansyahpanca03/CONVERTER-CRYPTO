@@ -73,4 +73,23 @@ export function pushRecentCoin(sym) {
   return next;
 }
 
+const CHART_PREFS_KEY = "panca-swap-chart-prefs";
+
+export function loadChartPrefs() {
+  try {
+    const raw = localStorage.getItem(CHART_PREFS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveChartPrefs(prefs) {
+  try {
+    localStorage.setItem(CHART_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    /* tidak fatal — cuma kenyamanan, bukan fitur inti */
+  }
+}
+
 export { HISTORY_MAX, FAVORITES_MAX };
