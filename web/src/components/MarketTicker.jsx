@@ -54,6 +54,10 @@ export default function MarketTicker({ onSelect }) {
           onClick={() => onSelect?.(sym)}
           title={`Pakai ${sym.toUpperCase()} di converter`}
         >
+          <span
+            className={`psa-ticker-item-dot ${up ? "psa-ticker-up" : down ? "psa-ticker-down" : ""}`}
+            aria-hidden="true"
+          />
           <span className="psa-ticker-sym">{sym.toUpperCase()}</span>
           <span className="psa-ticker-price">{price != null ? `$${formatAmount(price, "usd")}` : "…"}</span>
           {typeof change === "number" && (
@@ -70,10 +74,8 @@ export default function MarketTicker({ onSelect }) {
 
   return (
     <div className="psa-ticker" id="market" role="region" aria-label="Harga pasar berjalan">
-      <h2 className="psa-ticker-label">
-        <span className="psa-ticker-dot" aria-hidden="true" />
-        <span className="psa-live-text">Live Market</span>
-      </h2>
+      {/* Judul "Live Market" cukup sekali, di header — di sini cuma pita harganya. */}
+      <h2 className="visually-hidden">Harga pasar berjalan</h2>
       <div className="psa-ticker-viewport">
         <div className="psa-ticker-track">
           {renderItems("a")}

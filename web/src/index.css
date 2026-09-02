@@ -251,7 +251,8 @@ img {
 .psa-logo-mark {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  /* Heksagon, bukan kotak — biar logonya beda dari tombol/ikon lain. */
+  clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   display: flex;
   align-items: center;
@@ -261,19 +262,11 @@ img {
   font-size: 16px;
   flex-shrink: 0;
 }
-.psa-logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
 .psa-logo-name {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 15px;
-  letter-spacing: 0.01em;
-}
-.psa-logo-tagline {
-  font-size: 11px;
-  color: var(--text-faint);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 .psa-nav {
   display: flex;
@@ -292,7 +285,7 @@ img {
   color: var(--text);
 }
 .psa-nav a.active {
-  color: var(--text);
+  color: var(--primary);
   border-color: var(--primary);
 }
 .psa-header-right {
@@ -380,34 +373,6 @@ img {
   align-items: center;
   overflow: hidden;
 }
-.psa-ticker-label {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  border-right: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
-  white-space: nowrap;
-}
-.psa-ticker-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5);
-  animation: psa-live-pulse 2s ease-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .psa-ticker-dot {
-    animation: none;
-  }
-}
 .psa-ticker-viewport {
   flex: 1;
   overflow: hidden;
@@ -456,6 +421,19 @@ img {
 }
 .psa-ticker-item:hover {
   color: var(--primary);
+}
+.psa-ticker-item-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+.psa-ticker-item-dot.psa-ticker-up {
+  background: var(--success);
+}
+.psa-ticker-item-dot.psa-ticker-down {
+  background: var(--danger);
 }
 .psa-ticker-sym {
   font-weight: 600;
@@ -516,12 +494,10 @@ img {
 .psa-h1 {
   font-size: clamp(28px, 4vw, 44px);
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
   margin: 0;
-  background: linear-gradient(90deg, var(--text), var(--text) 55%, var(--primary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text);
 }
 .psa-subtitle {
   margin: var(--space-3) 0 0;
@@ -575,11 +551,101 @@ img {
 }
 .psa-converter {
   padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 @media (max-width: 640px) {
   .psa-converter {
     padding: 18px;
   }
+}
+.psa-converter-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.psa-divider {
+  height: 1px;
+  background: var(--border);
+}
+
+/* --- Quick Command, sekarang menyatu di dalam kartu converter --- */
+.psa-qc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.psa-qc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.psa-qc-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.psa-info-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  color: var(--text-faint);
+  cursor: help;
+}
+.psa-qc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(8, 11, 20, 0.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  transition: border-color 0.15s;
+}
+.psa-qc-row:focus-within {
+  border-color: var(--primary);
+}
+.psa-qc-icon {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+.psa-qc-input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 14.5px;
+  padding: 12px 0;
+}
+.psa-qc-input::placeholder {
+  color: var(--text-faint);
+}
+.psa-qc-input:focus {
+  outline: none;
+}
+.psa-qc-go {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--gradient-primary);
+  color: #04222a;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  min-height: 36px;
+  transition: filter 0.15s;
+}
+.psa-qc-go:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.psa-qc-go:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 .psa-field {
   border: 1px solid var(--border);
@@ -595,6 +661,35 @@ img {
   font-size: 13px;
   color: var(--text-muted);
   margin-bottom: var(--space-2);
+}
+.psa-field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+.psa-field-top .psa-field-label {
+  margin-bottom: 0;
+}
+.psa-field-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.psa-field-copy:hover:not(:disabled) {
+  color: var(--primary);
+}
+.psa-field-copy:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .psa-field-row {
   display: flex;
@@ -978,6 +1073,49 @@ img {
   text-underline-offset: 2px;
   cursor: help;
 }
+
+/* Versi ringkas, rata tengah, menyatu di dalam converter card — dipakai */
+/* Converter.jsx lewat <PriceMeta variant="inline">. Disclaimer spread/  */
+/* slippage-nya dipindah jadi tooltip (title) di seluruh blok ini,       */
+/* bukan paragraf terpisah, biar tetap ringkas.                          */
+.psa-meta-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  cursor: help;
+}
+.psa-meta-inline-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+.psa-meta-inline-rate strong {
+  color: var(--text);
+  font-weight: 700;
+}
+.psa-meta-refresh {
+  width: 24px;
+  height: 24px;
+}
+.psa-meta-inline-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.psa-meta-inline-error {
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: default;
+}
 .psa-icon-btn {
   background: none;
   border: none;
@@ -1028,21 +1166,21 @@ img {
   border-color: var(--warning);
 }
 
+/* Cuma Bagikan + Favorit — Salin sudah pindah jadi ikon kecil di field  */
+/* "Anda menerima", jadi baris ini nggak perlu lebar/menonjol lagi.      */
 .psa-result-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
   justify-content: center;
-  padding: 0 var(--space-6) var(--space-5);
+  margin-top: -4px;
 }
-@media (max-width: 640px) {
-  .psa-result-actions {
-    padding: 0 18px var(--space-4);
-  }
+.psa-result-actions .psa-icon-btn.is-fav {
+  color: var(--warning);
 }
 
 /* ============================================================ */
-/*  Quick command                                                 */
+/*  Quick command (dipakai favorit-pair chips; QC utama sekarang di     */
+/*  dalam Converter.jsx lewat .psa-qc-*)                                 */
 /* ============================================================ */
 .psa-quick {
   padding: var(--space-5);
@@ -1056,55 +1194,6 @@ img {
 .psa-quick-title {
   font-size: 14px;
   font-weight: 700;
-}
-.psa-quick-badge {
-  font-size: 11px;
-  color: var(--secondary);
-  background: var(--secondary-soft);
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-}
-.psa-quick-row {
-  display: flex;
-  gap: var(--space-2);
-}
-.psa-quick-input {
-  flex: 1;
-  min-width: 0;
-  background: rgba(8, 11, 20, 0.4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text);
-  font-size: 15px;
-  padding: 12px 14px;
-  min-height: 44px;
-}
-.psa-quick-input:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-.psa-quick-input::placeholder {
-  color: var(--text-faint);
-}
-.psa-quick-go {
-  padding: 0 20px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-strong);
-  background: var(--panel-hover);
-  color: var(--text);
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
-}
-.psa-quick-go:hover:not(:disabled) {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-.psa-quick-go:disabled {
-  opacity: 0.6;
-  cursor: wait;
 }
 .psa-chip-scroll {
   margin-top: var(--space-3);
@@ -1134,15 +1223,12 @@ img {
   color: var(--text);
   background: var(--primary-soft);
 }
-.psa-chip-icon {
+/* Nyorot contoh yang teksnya lagi sama persis dengan isi input Quick   */
+/* Command — kelihatan mana yang lagi aktif dipakai.                    */
+.psa-chip.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
   color: var(--primary);
-  flex-shrink: 0;
-}
-.psa-chip-tag {
-  color: var(--text-faint);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 @media (max-width: 640px) {
   .psa-chip-scroll {
@@ -1245,113 +1331,80 @@ img {
 .psa-history-clear:hover {
   color: var(--danger);
 }
-.psa-history-list {
-  display: flex;
-  flex-direction: column;
-}
-.psa-history-item {
+.psa-history-head-actions {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 12px 4px;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
 }
-.psa-history-item:last-child {
-  border-bottom: none;
-}
-.psa-history-item:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-.psa-history-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.psa-history-viewall {
   background: none;
   border: none;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  padding: 4px;
-}
-.psa-history-icons {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-}
-.psa-history-icons > span:last-child,
-.psa-history-icons > img:last-child {
-  margin-left: -8px;
-  border: 2px solid var(--panel);
-  border-radius: 50%;
-}
-.psa-history-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.psa-history-pair {
+  color: var(--primary);
+  font-size: 13px;
   font-weight: 600;
-  font-size: 13.5px;
+  cursor: pointer;
+  padding: var(--space-1) 0;
 }
-.psa-history-amounts {
-  font-size: 12px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
+.psa-history-viewall:hover {
+  text-decoration: underline;
+}
+
+.psa-history-table-wrap {
+  overflow-x: auto;
+}
+.psa-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
   white-space: nowrap;
 }
+.psa-history-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  padding: 0 10px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.psa-history-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.psa-history-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.psa-history-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.psa-history-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.psa-history-coin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text);
+}
 .psa-history-time {
-  flex-shrink: 0;
+  color: var(--text-faint);
+}
+.psa-history-status-row {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11.5px;
-  color: var(--text-faint);
-  white-space: nowrap;
 }
-.psa-history-actions {
-  flex-shrink: 0;
-  display: flex;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
+.psa-history-status {
+  color: var(--success);
+  font-weight: 600;
 }
-.psa-history-item:hover .psa-history-actions,
-.psa-history-item:focus-within .psa-history-actions {
-  opacity: 1;
-}
-@media (hover: none) {
-  .psa-history-actions {
-    opacity: 1;
-  }
-}
-.psa-history-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  margin-top: var(--space-2);
-  padding: 10px;
-  background: none;
-  border: none;
-  border-top: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 13px;
-  cursor: pointer;
-}
-.psa-history-more:hover {
-  color: var(--primary);
-}
-.psa-history-more svg {
-  transition: transform 0.18s ease;
-}
-.psa-history-more svg.is-open {
-  transform: rotate(180deg);
+.psa-history-status-row .psa-icon-btn {
+  width: 26px;
+  height: 26px;
 }
 .psa-history-empty {
   text-align: center;
@@ -1451,105 +1504,53 @@ img {
 /* ============================================================ */
 /*  Help bot                                                       */
 /* ============================================================ */
-/* Track: elemen yang benar-benar berjalan bolak-balik di sepanjang    */
-/* tepi bawah layar. Saat panel chat dibuka, ditambatkan (is-docked) ke */
-/* pojok kanan bawah supaya tetap terlihat menyatu dengan panelnya —    */
-/* tidak "kabur" ke tengah layar saat sedang diajak ngobrol.            */
-.psa-help-bot-track {
-  position: fixed;
-  bottom: 20px;
-  left: 6%;
-  z-index: 50;
-  animation: psa-mascot-walk 42s ease-in-out infinite;
-}
-/* Berhenti sejenak saat mouse mendekat, supaya gampang diklik tanpa    */
-/* mengejar target yang bergerak — posisinya tetap di titik terakhir.   */
-.psa-help-bot-track:hover,
-.psa-help-bot-track:focus-within {
-  animation-play-state: paused;
-}
-/* Ditambatkan penuh ke pojok saat panel chat terbuka. */
-.psa-help-bot-track.is-docked {
-  animation: none;
-  left: auto;
-  right: 20px;
-  transform: none;
-}
-@keyframes psa-mascot-walk {
-  0% {
-    left: 6%;
-    transform: scaleX(1);
-  }
-  47% {
-    left: 78%;
-    transform: scaleX(1);
-  }
-  50% {
-    left: 78%;
-    transform: scaleX(-1);
-  }
-  97% {
-    left: 6%;
-    transform: scaleX(-1);
-  }
-  100% {
-    left: 6%;
-    transform: scaleX(1);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .psa-help-bot-track {
-    animation: none;
-  }
-}
-
+/* Badge bundar statis di pojok kanan bawah — bukan lagi jalan-jalan     */
+/* melintasi layar, biar tidak ikut menimpa konten pas discroll.         */
 .psa-help-bot {
-  position: relative;
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
   z-index: 50;
-  width: 68px;
-  height: 68px;
-  background: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
   border: none;
   color: var(--text);
-  font-size: 22px;
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+  box-shadow: var(--shadow-md);
+  animation: psa-help-bot-idle 3s ease-in-out infinite;
+  transition: transform 0.15s;
 }
-/* Penting: width/height% di sini butuh ancestor bersize pasti supaya    */
-/* tidak jatuh ke ukuran asli tiap file (yang beda-beda antar frame,     */
-/* bikin gambarnya "lompat" ukuran pas gonta-ganti pose). Makanya         */
-/* .psa-help-bot-bob di bawah juga diberi width/height 100% eksplisit.   */
+.psa-help-bot:hover {
+  transform: scale(1.05);
+}
 .psa-help-bot img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
 }
-.psa-help-bot-bob {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  animation: psa-mascot-bob 1.4s ease-in-out infinite;
-}
-@keyframes psa-mascot-bob {
+@keyframes psa-help-bot-idle {
   0%,
   100% {
-    transform: translateY(0);
+    transform: scale(1);
   }
   50% {
-    transform: translateY(-2px);
+    transform: scale(1.04);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .psa-help-bot-bob {
+  .psa-help-bot {
     animation: none;
   }
-}
-.is-docked .psa-help-bot-bob {
-  animation: none;
+  .psa-help-bot:hover {
+    transform: none;
+  }
 }
 .psa-help-panel {
   position: fixed;
@@ -1712,22 +1713,29 @@ img {
   font-weight: 700;
   margin-bottom: var(--space-3);
 }
-.psa-popular-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+.psa-popular-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  margin: 0 calc(-1 * var(--space-1));
+  padding: 2px var(--space-1) 6px;
+}
+.psa-popular-row {
+  display: flex;
   gap: var(--space-3);
 }
 .psa-popular-card {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 12px 16px;
   color: var(--text);
   cursor: pointer;
   text-align: left;
+  white-space: nowrap;
   transition: transform 0.15s, border-color 0.15s, background 0.15s;
 }
 .psa-popular-card:hover {
@@ -1735,20 +1743,19 @@ img {
   background: var(--panel-hover);
   transform: translateY(-2px);
 }
-.psa-popular-icons {
-  flex-shrink: 0;
+.psa-popular-info {
   display: flex;
-  align-items: center;
-}
-.psa-popular-icons > span:last-child,
-.psa-popular-icons > img:last-child {
-  margin-left: -8px;
-  border: 2px solid var(--panel);
-  border-radius: 50%;
+  flex-direction: column;
+  gap: 2px;
 }
 .psa-popular-pair {
-  font-weight: 600;
-  font-size: 13.5px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.psa-popular-price {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .psa-why-grid {
@@ -1814,9 +1821,9 @@ img {
   z-index: 1;
   border-top: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.015);
-  /* Bawah dilebihkan supaya maskot yang mengambang (fixed, jalan sampai  */
-  /* ujung kiri layar) selalu punya jalur kosong di ujung halaman —      */
-  /* tidak pernah menimpa logo/link footer saat discroll sampai bawah.   */
+  /* Bawah dilebihkan supaya badge bantuan yang fixed di pojok kanan     */
+  /* bawah selalu punya ruang kosong di ujung halaman — tidak pernah     */
+  /* menimpa link footer saat discroll sampai bawah.                    */
   padding: var(--space-6) var(--space-6) calc(var(--space-5) + 110px);
   text-align: center;
 }
@@ -1829,25 +1836,16 @@ img {
   justify-content: space-between;
   gap: var(--space-4);
 }
-.psa-footer-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
-  font-weight: 700;
-  font-size: 13.5px;
-}
-.psa-footer-logo {
-  display: inline-flex;
-  color: var(--primary);
-}
 .psa-footer-links {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
   gap: var(--space-4);
 }
 .psa-footer-links a {
+  display: inline-flex;
+  align-items: center;
   color: var(--text-faint);
   text-decoration: none;
   font-size: 12.5px;
@@ -1911,51 +1909,22 @@ img {
     left: 10px;
     width: auto;
   }
-  .psa-help-bot-track {
-    bottom: 14px;
-    /* Jalur lebih pendek di layar sempit — kartu-kartu di sini penuh     */
-    /* selebar layar, jadi maskot cukup mondar-mandir dekat pojok kiri    */
-    /* saja supaya tidak keseringan menimpa teks di tengah konten.        */
-    animation-name: psa-mascot-walk-mobile;
-  }
-  .psa-help-bot-track.is-docked {
-    right: 14px;
-  }
   .psa-help-bot {
-    width: 56px;
-    height: 56px;
+    right: 14px;
+    bottom: 14px;
+    width: 50px;
+    height: 50px;
+  }
+  .psa-help-bot img {
+    width: 36px;
+    height: 36px;
   }
   .psa-help-panel {
     right: 14px;
-    bottom: 78px;
-  }
-}
-@keyframes psa-mascot-walk-mobile {
-  0% {
-    left: 4%;
-    transform: scaleX(1);
-  }
-  47% {
-    left: 38%;
-    transform: scaleX(1);
-  }
-  50% {
-    left: 38%;
-    transform: scaleX(-1);
-  }
-  97% {
-    left: 4%;
-    transform: scaleX(-1);
-  }
-  100% {
-    left: 4%;
-    transform: scaleX(1);
+    bottom: 72px;
   }
 }
 @media (max-width: 420px) {
-  .psa-logo-tagline {
-    display: none;
-  }
   .psa-live-indicator {
     display: none;
   }

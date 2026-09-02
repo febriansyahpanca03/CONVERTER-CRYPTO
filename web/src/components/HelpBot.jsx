@@ -24,58 +24,10 @@ function Avatar({ size = 22, circle = true }) {
   );
 }
 
-/* Maskot bergerak: 86 potongan pose diambil otomatis dari sheet         */
-/* referensi, disimpan sebagai file terpisah di /public/mascot/. Karena  */
-/* tiap file berdiri sendiri (bukan satu sprite sheet), cukup gonta-ganti */
-/* <img src> tiap ~130ms — tidak perlu tahu koordinat potongan pastinya. */
-/* Frame-frame ini masih membawa sisa angka/label teks dari sheet asli */
-/* yang nempel langsung ke gambar karakternya (tidak terpisah otomatis), */
-/* jadi dikeluarkan dari daftar animasi.                                 */
-const MASCOT_BAD_FRAMES = new Set([35, 53, 63, 64]);
-const MASCOT_FRAMES = Array.from({ length: 86 }, (_, i) => i + 1)
-  .filter((n) => !MASCOT_BAD_FRAMES.has(n))
-  .map((n) => `/mascot/frame_${String(n).padStart(2, "0")}.png`);
-const MASCOT_FRAME_COUNT = MASCOT_FRAMES.length;
-
-function AnimatedMascot({ size = 76 }) {
-  const [index, setIndex] = useState(0);
-  const [broken, setBroken] = useState(false);
-
-  // Hangatkan cache browser supaya putaran pertama juga mulus — tapi
-  // ditunda sampai browser idle, biar 86 request gambar ini nggak ikut
-  // rebutan bandwidth sama aset penting (JS/CSS/font) pas halaman baru dibuka.
-  useEffect(() => {
-    const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 200));
-    const cancelIdle = window.cancelIdleCallback || clearTimeout;
-    const id = idle(() => {
-      MASCOT_FRAMES.forEach((src) => {
-        const img = new Image();
-        img.src = src;
-      });
-    });
-    return () => cancelIdle(id);
-  }, []);
-
-  useEffect(() => {
-    if (broken) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % MASCOT_FRAME_COUNT), 130);
-    return () => clearInterval(id);
-  }, [broken]);
-
-  if (broken) return <span aria-hidden="true" style={{ fontSize: size * 0.8 }}>🤖</span>;
-
-  return (
-    <img
-      src={MASCOT_FRAMES[index]}
-      alt=""
-      width={size}
-      height={size}
-      draggable={false}
-      style={{ objectFit: "contain" }}
-      onError={() => setBroken(true)}
-    />
-  );
-}
+/* NB: sempat ada versi maskot yang jalan bolak-balik pakai 86 potongan */
+/* pose (masih ada filenya di /public/mascot/frame_*.png kalau suatu    */
+/* saat mau dipakai lagi) — sekarang diganti badge bundar statis biar   */
+/* menyatu dengan gaya widget bantuan yang lebih tenang/compact.        */
 
 /* Maskot robot, sekarang jadi asisten AI beneran (bukan FAQ statis) —  */
 /* pakai Groq yang sudah terhubung lewat /api/assistant, dengan prompt  */
@@ -203,20 +155,16 @@ export default function HelpBot() {
           </div>
         </div>
       )}
-      <div className={`psa-help-bot-track ${open ? "is-docked" : ""}`}>
-        <button
-          ref={btnRef}
-          className="psa-help-bot"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={open ? "Tutup asisten" : "Buka asisten bantuan"}
-          title="Butuh bantuan?"
-        >
-          <span className="psa-help-bot-bob">
-            <AnimatedMascot size={68} />
-          </span>
-        </button>
-      </div>
+      <button
+        ref={btnRef}
+        className="psa-help-bot"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={open ? "Tutup asisten" : "Buka asisten bantuan"}
+        title="Butuh bantuan?"
+      >
+        <Avatar size={40} />
+      </button>
     </>
   );
 }

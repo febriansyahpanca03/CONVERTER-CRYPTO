@@ -101,9 +101,18 @@ export async function fetchRates(fromSym, toSym, outerSignal) {
 }
 
 export async function fetchTickerPrices() {
-  const ids = TICKER_SYMS.map((s) => COINS[s].id).join(",");
+  return fetchPricesFor(TICKER_SYMS);
+}
+
+/* Harga USD mentah buat simbol kripto tertentu (dipakai kartu "Pasangan */
+/* populer" — beda dari fetchRates yang menghitung KURS antar dua aset). */
+export async function fetchPricesFor(symbols) {
+  const ids = symbols
+    .filter(isCoin)
+    .map((s) => COINS[s].id)
+    .join(",");
   const res = await fetch(`/api/price?ids=${ids}&vs=usd`);
-  if (!res.ok) throw new Error("ticker fetch failed");
+  if (!res.ok) throw new Error("price fetch failed");
   return res.json();
 }
 

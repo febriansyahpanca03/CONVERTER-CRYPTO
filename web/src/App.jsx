@@ -3,25 +3,14 @@ import Starfield from "./components/Starfield.jsx";
 import Header from "./components/Header.jsx";
 import MarketTicker from "./components/MarketTicker.jsx";
 import Converter from "./components/Converter.jsx";
-import QuickCommand from "./components/QuickCommand.jsx";
-import PriceMeta from "./components/PriceMeta.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import Toast from "./components/Toast.jsx";
 import HelpBot from "./components/HelpBot.jsx";
 import { COINS, known } from "./data/assets.js";
 import CoinIcon from "./components/CoinIcon.jsx";
-import {
-  IconCopy,
-  IconShare,
-  IconStar,
-  IconCheck,
-  IconSwapVertical,
-  IconTrendingUp,
-  IconMessageCircle,
-  IconZap,
-} from "./components/Icons.jsx";
-import { parseWithModel, parseFallback, fetchRates, fetchIcons } from "./lib/api.js";
-import { formatAmountSafe } from "./lib/format.js";
+import { IconTrendingUp, IconMessageCircle, IconZap, IconGithub } from "./components/Icons.jsx";
+import { parseWithModel, parseFallback, fetchRates, fetchIcons, fetchPricesFor } from "./lib/api.js";
+import { formatAmountSafe, formatAmount } from "./lib/format.js";
 import {
   loadHistory,
   saveHistory,
@@ -300,11 +289,8 @@ export default function App() {
         <main className="psa-main">
           <div className="psa-shell">
             <div className="psa-hero">
-              <h1 className="psa-h1">Konversi crypto dengan lebih cepat</h1>
-              <p className="psa-subtitle">
-                Pakai form biasa, atau ketik perintah kayak “250 USDT ke ETH” — harganya selalu
-                real-time.
-              </p>
+              <h1 className="psa-h1">Panca Swap Agent</h1>
+              <p className="psa-subtitle">Konversi cepat antar aset kripto dengan harga pasar terbaik.</p>
             </div>
 
             <div className="psa-stack">
@@ -325,50 +311,19 @@ export default function App() {
                   result={result}
                   amountError={amountError}
                   icons={icons}
-                />
-                <PriceMeta
-                  status={status}
-                  result={result}
+                  query={query}
+                  onQueryChange={setQuery}
+                  onRunQuickCommand={runQuickCommand}
                   message={message}
                   offline={offline}
-                  fromSym={fromSym}
-                  toSym={toSym}
                   onRefresh={() => convert()}
+                  onCopyResult={copyResult}
+                  justCopied={justCopied}
+                  onShare={shareResult}
+                  onToggleFavorite={toggleFavorite}
+                  isFavorite={isFav}
                 />
-                {status === "done" && result && (
-                  <div className="psa-result-actions">
-                    <button
-                      className={`psa-icon-btn has-label ${justCopied ? "is-success" : ""}`}
-                      onClick={copyResult}
-                      title="Salin hasil"
-                      aria-label="Salin hasil"
-                    >
-                      {justCopied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                      {justCopied ? "Disalin" : "Salin"}
-                    </button>
-                    <button
-                      className="psa-icon-btn has-label"
-                      onClick={shareResult}
-                      title="Bagikan hasil"
-                      aria-label="Bagikan hasil"
-                    >
-                      <IconShare size={16} />
-                      Bagikan
-                    </button>
-                    <button
-                      className={`psa-icon-btn has-label ${isFav ? "is-fav" : ""}`}
-                      onClick={toggleFavorite}
-                      title={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
-                      aria-label={isFav ? "Hapus dari favorit" : "Tambah ke favorit"}
-                    >
-                      <IconStar size={16} filled={isFav} />
-                      Favorit
-                    </button>
-                  </div>
-                )}
               </div>
-
-              <QuickCommand query={query} onQueryChange={setQuery} onRun={runQuickCommand} status={status} />
 
               {favorites.length > 0 && (
                 <div className="psa-card psa-quick">
@@ -440,31 +395,57 @@ const POPULAR_PAIRS = [
 ];
 
 function PopularPairs({ icons, onSelect }) {
+  // Harga dasar (bukan kurs — cuma buat konteks di kartu), di-cache 20s
+  // di server jadi murah untuk dipanggil terpisah dari ticker utama.
+  const [prices, setPrices] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    const symbols = [...new Set(POPULAR_PAIRS.map((p) => p.from))];
+    fetchPricesFor(symbols)
+      .then((d) => alive && setPrices(d))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
     <section className="psa-section" aria-labelledby="psa-popular-title">
       <h2 id="psa-popular-title" className="psa-section-title">
         Pasangan populer
       </h2>
-      <div className="psa-popular-grid">
-        {POPULAR_PAIRS.map((p) => {
-          const fromMeta = COINS[p.from];
-          const toMeta = COINS[p.to];
-          return (
-            <button
-              key={`${p.from}-${p.to}`}
-              className="psa-popular-card"
-              onClick={() => onSelect(p.from, p.to)}
-            >
-              <span className="psa-popular-icons">
-                <CoinIcon sym={p.from} size={22} iconUrl={fromMeta ? icons[fromMeta.id] : undefined} />
-                <CoinIcon sym={p.to} size={22} iconUrl={toMeta ? icons[toMeta.id] : undefined} />
-              </span>
-              <span className="psa-popular-pair">
-                {p.from.toUpperCase()} → {p.to.toUpperCase()}
-              </span>
-            </button>
-          );
-        })}
+      <div className="psa-popular-scroll">
+        <div className="psa-popular-row">
+          {POPULAR_PAIRS.map((p) => {
+            const fromMeta = COINS[p.from];
+            const entry = fromMeta ? prices?.[fromMeta.id] : null;
+            const change = entry?.usd_24h_change;
+            const up = typeof change === "number" && change >= 0;
+            return (
+              <button
+                key={`${p.from}-${p.to}`}
+                className="psa-popular-card"
+                onClick={() => onSelect(p.from, p.to)}
+              >
+                <CoinIcon sym={p.from} size={26} iconUrl={fromMeta ? icons[fromMeta.id] : undefined} />
+                <span className="psa-popular-info">
+                  <span className="psa-popular-pair">
+                    {p.from.toUpperCase()}/{p.to.toUpperCase()}
+                  </span>
+                  <span className="psa-popular-price">
+                    {entry?.usd != null ? `$${formatAmount(entry.usd, "usd")}` : "—"}
+                    {typeof change === "number" && (
+                      <span className={up ? "psa-ticker-up" : "psa-ticker-down"}>
+                        {" "}
+                        {up ? "▲" : "▼"} {Math.abs(change).toFixed(2)}%
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
@@ -474,7 +455,7 @@ function PopularPairs({ icons, onSelect }) {
 const WHY_ITEMS = [
   {
     Icon: IconTrendingUp,
-    title: "Harga real-time",
+    title: "Harga real time",
     text: "Langsung dari CoinGecko, bukan angka basi.",
   },
   {
@@ -515,30 +496,26 @@ function SiteFooter() {
   return (
     <footer className="psa-footer">
       <div className="psa-footer-inner">
-        <div className="psa-footer-brand">
-          <span className="psa-footer-logo" aria-hidden="true">
-            <IconSwapVertical size={16} />
-          </span>
-          <span className="psa-footer-name">Panca Swap</span>
-        </div>
+        <p className="psa-footer-copyright">© {year} Panca Swap. All rights reserved.</p>
 
         <nav className="psa-footer-links" aria-label="Tautan footer">
-          <a href="#converter">Converter</a>
-          <a href="https://www.coingecko.com" target="_blank" rel="noopener">
-            Data Source
+          {/* Belum ada halaman dokumentasi/syarat terpisah — diarahkan ke  */}
+          {/* bagian yang paling relevan di halaman ini, bukan link mati.  */}
+          <a href="https://github.com/febriansyahpanca03/CONVERTER-CRYPTO" target="_blank" rel="noopener">
+            Dokumentasi
           </a>
-          <a href="#about">Privacy</a>
-          <a href="#about">Disclaimer</a>
+          <a href="#about">Kebijakan Privasi</a>
+          <a href="#about">Syarat &amp; Ketentuan</a>
           <a
             href="https://github.com/febriansyahpanca03/CONVERTER-CRYPTO/issues"
             target="_blank"
             rel="noopener"
+            aria-label="Laporkan masalah di GitHub"
+            title="Laporkan masalah"
           >
-            Report Issue
+            <IconGithub size={16} />
           </a>
         </nav>
-
-        <p className="psa-footer-copyright">© {year} Panca Swap. Data harga dari CoinGecko.</p>
       </div>
       <p className="psa-footer-disclaimer">Data hanya untuk tujuan informasi, bukan nasihat finansial.</p>
     </footer>

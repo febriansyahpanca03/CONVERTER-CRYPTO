@@ -21,15 +21,12 @@ export default function Header() {
           <span className="psa-logo-mark" aria-hidden="true">
             <IconSwapVertical size={17} />
           </span>
-          <span className="psa-logo-text">
-            <span className="psa-logo-name">Panca Swap</span>
-            <span className="psa-logo-tagline">Kurs kripto, selalu baru</span>
-          </span>
+          <span className="psa-logo-name">Panca Swap</span>
         </a>
 
         <nav className="psa-nav" aria-label="Navigasi utama">
-          {LINKS.map((l) => (
-            <a key={l.href} href={l.href}>
+          {LINKS.map((l, i) => (
+            <a key={l.href} href={l.href} className={i === 0 ? "active" : undefined}>
               {l.label}
             </a>
           ))}
