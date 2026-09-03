@@ -10,8 +10,11 @@
   --border-strong: rgba(255, 255, 255, 0.16);
 
   --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-faint: #64748b;
+  /* Sedikit dinaikkan dari #94a3b8/#64748b — label, metadata, About,     */
+  /* footer, dan info sumber harga jadi lebih gampang dibaca di atas      */
+  /* background gelap, tapi masih jelas beda dari --text (bukan putih).  */
+  --text-muted: #a4b3c9;
+  --text-faint: #7987a0;
 
   --primary: #22d3ee;
   --primary-hover: #06b6d4;
@@ -129,74 +132,276 @@ img {
   min-height: 100%;
 }
 
+/* ---------------------------------------------------------------- */
+/* Background luar angkasa berlapis — nebula, far/near starfield,     */
+/* twinkle, meteor sesekali, scrim, lalu focal glow. Semuanya sekunder */
+/* (pointer-events:none di root, di bawah .psa-content secara z-index) */
+/* dan redup — converter tidak boleh pernah kalah fokus sama langitnya. */
+/* ---------------------------------------------------------------- */
 .psa-bg {
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  pointer-events: none;
 }
-.psa-bg-photo {
+/* Parallax kursor (opsional, lihat Starfield.jsx) — nebula paling      */
+/* sedikit bergeser, near stars paling banyak, biar ada rasa kedalaman. */
+/* var(--px)/var(--py) di-set lewat JS (rentang -0.5..0.5), default 0   */
+/* kalau parallax dimatikan (mobile/touch/reduced-motion) jadi aman.    */
+.psa-parallax-nebula,
+.psa-parallax-far,
+.psa-parallax-near {
   position: absolute;
   inset: 0;
-  background: url("/space-bg.jpg") center / cover no-repeat;
-  filter: blur(6px) saturate(0.7) brightness(0.4);
-  transform: scale(1.06); /* menutupi tepi blur */
 }
+.psa-parallax-nebula {
+  transform: translate3d(calc(var(--px, 0) * 6px), calc(var(--py, 0) * 6px), 0);
+}
+.psa-parallax-far {
+  transform: translate3d(calc(var(--px, 0) * 5px), calc(var(--py, 0) * 5px), 0);
+}
+.psa-parallax-near {
+  transform: translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 12px), 0);
+}
+
+/* 1. Nebula — foto galaksi asli, drift-nya nyaris tak terasa. */
+.psa-bg-photo {
+  position: absolute;
+  inset: -3%;
+  background: url("/space-bg.jpg") center / cover no-repeat;
+  filter: blur(4px) saturate(0.8);
+  opacity: 0.3;
+  transform: scale(1.06);
+  will-change: transform;
+  animation: psa-nebula-drift 40s ease-in-out infinite alternate;
+}
+@keyframes psa-nebula-drift {
+  from {
+    transform: scale(1.06) translate3d(-0.5%, -0.3%, 0);
+  }
+  to {
+    transform: scale(1.1) translate3d(0.8%, 0.5%, 0);
+  }
+}
+
+/* 2. Far starfield — kecil, redup, drift diagonal lambat (bukan rotasi */
+/*    seluruh langit di titik pusat — itu terlihat kayak radar berputar). */
+.psa-stars-far {
+  position: absolute;
+  inset: -20%;
+  opacity: 0.3;
+  background-repeat: repeat;
+  background-size: 340px 300px;
+  background-image: radial-gradient(0.9px 0.9px at 12% 18%, #fff, transparent 100%),
+    radial-gradient(0.7px 0.7px at 28% 63%, #fff, transparent 100%),
+    radial-gradient(1.1px 1.1px at 46% 12%, #fff, transparent 100%),
+    radial-gradient(0.6px 0.6px at 58% 47%, #fff, transparent 100%),
+    radial-gradient(0.9px 0.9px at 71% 81%, #fff, transparent 100%),
+    radial-gradient(0.7px 0.7px at 83% 29%, #fff, transparent 100%),
+    radial-gradient(1px 1px at 92% 64%, #fff, transparent 100%),
+    radial-gradient(0.6px 0.6px at 6% 92%, #fff, transparent 100%),
+    radial-gradient(0.8px 0.8px at 37% 90%, #fff, transparent 100%),
+    radial-gradient(0.9px 0.9px at 65% 6%, #fff, transparent 100%);
+  animation: psa-stars-far-drift 130s linear infinite;
+  will-change: transform;
+}
+@keyframes psa-stars-far-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-70px, 45px, 0);
+  }
+}
+
+/* 3. Near starfield — lebih besar & sedikit, drift lebih cepat (beda   */
+/*    kecepatan dari far stars = kesan parallax kedalaman walau statis). */
+.psa-stars-near {
+  position: absolute;
+  inset: -20%;
+  opacity: 0.4;
+  background-repeat: repeat;
+  background-size: 460px 400px;
+  background-image: radial-gradient(1.6px 1.6px at 15% 24%, #d9f7ff, transparent 100%),
+    radial-gradient(1.3px 1.3px at 44% 68%, #fff, transparent 100%),
+    radial-gradient(1.8px 1.8px at 72% 15%, #d9f7ff, transparent 100%),
+    radial-gradient(1.4px 1.4px at 88% 54%, #fff, transparent 100%),
+    radial-gradient(1.5px 1.5px at 30% 86%, #fff, transparent 100%);
+  animation: psa-stars-near-drift 75s linear infinite;
+  will-change: transform;
+}
+@keyframes psa-stars-near-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(90px, -55px, 0);
+  }
+}
+
+/* 4. Twinkle — cuma segelintir bintang (lihat TWINKLE_STARS di          */
+/*    Starfield.jsx), delay & durasi beda-beda supaya nggak kedap-kedip  */
+/*    bareng kayak lampu disko. */
+.psa-twinkle-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.2;
+  animation-name: psa-star-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+@keyframes psa-star-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+/* 5. Meteor — jarang muncul (siklus panjang, cuma kelihatan sekitar     */
+/*    5-6% dari siklusnya), dua elemen dengan posisi/delay/sudut beda.   */
+.psa-shooting-star {
+  position: absolute;
+  top: 14%;
+  left: 8%;
+  width: 120px;
+  height: 1px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(190, 245, 255, 0.8), transparent);
+  filter: blur(0.3px);
+  transform: rotate(-25deg);
+  animation: psa-shoot-1 17s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+.psa-shooting-star.is-second {
+  top: 34%;
+  left: 58%;
+  width: 90px;
+  animation-name: psa-shoot-2;
+  animation-duration: 23s;
+  animation-delay: 7s;
+}
+@keyframes psa-shoot-1 {
+  0%,
+  72%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(-25deg);
+  }
+  74% {
+    opacity: 0.8;
+  }
+  79% {
+    opacity: 0;
+    transform: translate3d(420px, 210px, 0) rotate(-25deg);
+  }
+}
+@keyframes psa-shoot-2 {
+  0%,
+  78%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(-20deg);
+  }
+  80% {
+    opacity: 0.7;
+  }
+  85% {
+    opacity: 0;
+    transform: translate3d(-380px, 190px, 0) rotate(-20deg);
+  }
+}
+
+/* 6. Scrim keterbacaan — makin gelap ke bawah, jadi area About/footer   */
+/*    otomatis dapat overlay paling gelap tanpa perlu aturan terpisah.   */
 .psa-bg-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(4, 6, 12, 0.78) 0%, rgba(4, 6, 12, 0.9) 45%, var(--bg) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(4, 6, 12, 0.72) 0%,
+    rgba(4, 6, 12, 0.82) 45%,
+    rgba(6, 8, 16, 0.94) 100%
+  );
 }
-/* Radial gradient halus di belakang area converter, supaya kartu       */
-/* utama punya "panggung" tanpa gambar galaksi bersaing dengan teks.    */
+
+/* 7. Focal glow — di belakang converter, di ATAS scrim biar cyan-nya    */
+/*    tidak ikut diredupkan scrim (lihat urutan elemen di Starfield.jsx). */
 .psa-bg-focus {
   position: absolute;
   left: 50%;
   /* Piksel tetap (bukan %) — layer ini fixed menutupi seluruh viewport,   */
   /* jadi persentase akan mengacu ke 100vh, bukan ke posisi converter di   */
-  /* dalam halaman yang discroll. Angkanya disesuaikan ke hero yang baru   */
-  /* lebih pendek, supaya cahayanya tetap jatuh di belakang kartu utama.   */
-  top: 500px;
-  width: min(760px, 130vw);
-  height: 560px;
+  /* dalam halaman yang discroll. Angka top disesuaikan ke hero yang baru  */
+  /* lebih pendek (diverifikasi visual, bukan tebakan).                    */
+  top: 480px;
+  width: min(900px, 90vw);
+  height: 650px;
   transform: translate(-50%, -50%);
-  background: radial-gradient(
-    circle,
-    rgba(26, 196, 230, 0.09) 0%,
-    rgba(17, 89, 145, 0.04) 40%,
-    transparent 72%
-  );
-  pointer-events: none;
+  background: radial-gradient(ellipse, rgba(34, 211, 238, 0.1) 0%, rgba(56, 189, 248, 0.045) 42%, transparent 72%);
+  animation: psa-focus-breathe 10s ease-in-out infinite;
 }
-.psa-bg-stars {
-  position: absolute;
-  inset: -50%;
-  opacity: 0.22;
-  background-repeat: repeat;
-  background-size: 200px 160px;
-  background-image: radial-gradient(1.5px 1.5px at 40px 60px, #fff, transparent),
-    radial-gradient(1px 1px at 120px 20px, #fff, transparent),
-    radial-gradient(2px 2px at 200px 140px, #fff, transparent),
-    radial-gradient(1px 1px at 260px 80px, #fff, transparent);
-  animation: psa-star-spin 260s linear infinite;
-  transform-origin: center center;
-}
-@keyframes psa-star-spin {
-  from {
-    transform: rotate(0deg);
+@keyframes psa-focus-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    opacity: 1;
   }
 }
+
+/* Tab disembunyikan (lihat visibilitychange di Starfield.jsx) — hentikan */
+/* semua loop animasi latar, nggak ada yang lihat jadi nggak perlu jalan. */
+.psa-bg.is-paused .psa-bg-photo,
+.psa-bg.is-paused .psa-stars-far,
+.psa-bg.is-paused .psa-stars-near,
+.psa-bg.is-paused .psa-twinkle-star,
+.psa-bg.is-paused .psa-shooting-star,
+.psa-bg.is-paused .psa-bg-focus {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .psa-bg-stars {
-    animation: none;
+  .psa-bg-photo,
+  .psa-stars-far,
+  .psa-stars-near,
+  .psa-twinkle-star,
+  .psa-shooting-star,
+  .psa-bg-focus {
+    animation: none !important;
+  }
+  .psa-parallax-nebula,
+  .psa-parallax-far,
+  .psa-parallax-near {
+    transform: none !important;
   }
 }
 @media (max-width: 640px) {
-  .psa-bg-stars {
+  /* Mobile: lebih hemat baterai/CPU — kurangi kepadatan & matikan drift,  */
+  /* sisain cuma sebagian kecil twinkle, dan cuma satu meteor.             */
+  .psa-bg-photo,
+  .psa-stars-far,
+  .psa-stars-near {
     animation: none;
+  }
+  .psa-stars-far {
+    opacity: 0.16;
+  }
+  .psa-stars-near {
+    opacity: 0.2;
+  }
+  .psa-twinkle-star:nth-child(n + 7) {
+    display: none;
+  }
+  .psa-shooting-star.is-second {
+    display: none;
   }
 }
 
@@ -2302,6 +2507,9 @@ img {
 }
 /* Di desktop, kartu-kartu ini seragam lebar dalam satu baris grid —     */
 /* bukan lagi pita scroll horizontal (yang cuma masuk akal di mobile).   */
+/* Kolom tetap (bukan auto-fit) supaya 6 kartu default nggak pernah      */
+/* nyisain 1-2 kartu sendirian di baris terakhir — 3 kolom x 2 baris di  */
+/* desktop biasa, naik ke 6 kolom x 1 baris di layar lebar.              */
 @media (min-width: 720px) {
   .psa-popular-scroll {
     overflow: visible;
@@ -2310,7 +2518,12 @@ img {
   }
   .psa-popular-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .psa-popular-row {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 .psa-popular-card {
@@ -2318,6 +2531,7 @@ img {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -2337,6 +2551,8 @@ img {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 .psa-popular-pair {
   font-weight: 700;
@@ -2346,6 +2562,8 @@ img {
   font-size: 12px;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .psa-why-grid {

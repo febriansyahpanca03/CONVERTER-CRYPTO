@@ -11,7 +11,7 @@ import { COINS, known } from "./data/assets.js";
 import CoinIcon from "./components/CoinIcon.jsx";
 import { IconTrendingUp, IconMessageCircle, IconZap, IconGithub } from "./components/Icons.jsx";
 import { parseWithModel, parseFallback, fetchRates, fetchIcons, fetchPricesFor } from "./lib/api.js";
-import { formatAmountSafe, formatAmount } from "./lib/format.js";
+import { formatAmountSafe, displayAmount } from "./lib/format.js";
 import {
   loadHistory,
   saveHistory,
@@ -429,20 +429,21 @@ const POPULAR_PAIRS = [
     .filter((sym) => !["usdt", "usdc", "dai"].includes(sym))
     .map((sym) => ({ from: sym, to: "usdt" })),
 ];
-const POPULAR_PAIRS_VISIBLE_DEFAULT = 8;
+const POPULAR_PAIRS_VISIBLE_DEFAULT = 6;
 
 function PopularPairs({ icons, onSelect }) {
   const [expanded, setExpanded] = useState(false);
   const visiblePairs = expanded ? POPULAR_PAIRS : POPULAR_PAIRS.slice(0, POPULAR_PAIRS_VISIBLE_DEFAULT);
 
-  // Harga dasar (bukan kurs — cuma buat konteks di kartu). Minta harga
-  // SEMUA koin sekaligus (bukan cuma yang sedang tampil) supaya cache-nya
-  // di server persis sama dengan yang dipakai ticker & fetchRates — satu
-  // permintaan besar yang di-cache dan dipakai bareng, bukan berkali-kali.
+  // Harga dasar (bukan kurs — cuma buat konteks di kartu). Minta USD *dan*
+  // IDR sekaligus — pasangan yang labelnya "/IDR" (BTC/IDR, USDT/IDR)
+  // harus benar-benar menampilkan angka Rupiah, bukan angka USD yang
+  // diberi label IDR. Tetap satu permintaan besar buat SEMUA koin, jadi
+  // cache-nya di server persis sama dengan yang dipakai ticker/fetchRates.
   const [prices, setPrices] = useState(null);
   useEffect(() => {
     let alive = true;
-    fetchPricesFor(Object.keys(COINS))
+    fetchPricesFor(Object.keys(COINS), "usd,idr")
       .then((d) => alive && setPrices(d))
       .catch(() => {});
     return () => {
@@ -467,6 +468,11 @@ function PopularPairs({ icons, onSelect }) {
           {visiblePairs.map((p) => {
             const fromMeta = COINS[p.from];
             const entry = fromMeta ? prices?.[fromMeta.id] : null;
+            // CoinGecko nggak punya vs_currency=usdt (lihat resolveChartPair
+            // di lib/chart.js buat penjelasan lengkap) — pasangan "/USDT" di
+            // sini make acuan harga USD yang sama, "/IDR" pakai IDR asli.
+            const quoteSym = p.to === "usdt" ? "usd" : p.to;
+            const value = entry?.[quoteSym];
             const change = entry?.usd_24h_change;
             const up = typeof change === "number" && change >= 0;
             return (
@@ -481,7 +487,7 @@ function PopularPairs({ icons, onSelect }) {
                     {p.from.toUpperCase()}/{p.to.toUpperCase()}
                   </span>
                   <span className="psa-popular-price">
-                    {entry?.usd != null ? `$${formatAmount(entry.usd, "usd")}` : "—"}
+                    {value != null ? displayAmount(value, quoteSym) : "—"}
                     {typeof change === "number" && (
                       <span className={up ? "psa-ticker-up" : "psa-ticker-down"}>
                         {" "}

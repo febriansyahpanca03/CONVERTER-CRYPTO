@@ -115,14 +115,15 @@ export async function fetchTickerPrices() {
   return fetchPricesFor(TICKER_SYMS);
 }
 
-/* Harga USD mentah buat simbol kripto tertentu (dipakai kartu "Pasangan */
-/* populer" — beda dari fetchRates yang menghitung KURS antar dua aset). */
-export async function fetchPricesFor(symbols) {
+/* Harga mentah (USD dan/atau fiat lain) buat simbol kripto tertentu —   */
+/* dipakai ticker & kartu "Pasangan populer". Beda dari fetchRates yang  */
+/* menghitung KURS antar dua aset, ini cuma harga satu sisi apa adanya.  */
+export async function fetchPricesFor(symbols, vs = "usd") {
   const ids = symbols
     .filter(isCoin)
     .map((s) => COINS[s].id)
     .join(",");
-  const res = await fetch(`/api/price?ids=${ids}&vs=usd`);
+  const res = await fetch(`/api/price?ids=${ids}&vs=${vs}`);
   if (!res.ok) throw new Error("price fetch failed");
   return res.json();
 }
