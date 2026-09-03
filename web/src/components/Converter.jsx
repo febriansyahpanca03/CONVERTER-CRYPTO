@@ -10,6 +10,7 @@ import {
   IconCheck,
   IconShare,
   IconStar,
+  IconChevronDown,
 } from "./Icons.jsx";
 
 const SAMPLES = ["250 USDT ke ETH", "1 BTC ke IDR", "0.5 ETH ke SOL", "10 SOL ke DOGE"];
@@ -49,7 +50,14 @@ export default function Converter({
   // Putaran 180 derajat tiap klik tombol swap — bukan cuma efek hover,
   // biar terasa sebagai respons nyata terhadap aksi pengguna.
   const [swapTurns, setSwapTurns] = useState(0);
-  const [copiedPay, setCopiedPay] = useState(false);
+  // Quick Command cuma fitur pelengkap (form terstruktur di bawahnya yang
+  // utama) — default terbuka di desktop, tertutup di mobile biar kalkulator
+  // nggak kepanjangan di layar pendek. Formnya sendiri TIDAK pernah ikut
+  // disembunyikan, cuma bagian Quick Command-nya.
+  const [qcOpen, setQcOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia?.("(min-width: 640px)").matches ?? true;
+  });
 
   useEffect(() => {
     amountRef.current?.focus();
@@ -60,88 +68,84 @@ export default function Converter({
     onSwap();
   }
 
-  function copyPay() {
-    if (!amount) return;
-    navigator.clipboard
-      ?.writeText(`${amount} ${fromSym.toUpperCase()}`)
-      .then(() => {
-        setCopiedPay(true);
-        setTimeout(() => setCopiedPay(false), 1500);
-      })
-      .catch(() => {});
-  }
-
   return (
     <div className="psa-converter">
       <h2 className="psa-converter-title">Crypto Converter</h2>
 
       <div className="psa-qc">
         <div className="psa-qc-head">
-          <span className="psa-qc-label">Quick Command</span>
-          <span
-            className="psa-info-dot"
-            tabIndex={0}
-            title="Ketik kalimat bebas, misalnya “250 USDT ke ETH”, terus tekan Hitung."
-            aria-label="Info Quick Command"
-          >
-            <IconInfo size={13} />
-          </span>
-        </div>
-        <div className="psa-qc-row">
-          <IconBolt size={16} className="psa-qc-icon" aria-hidden="true" />
-          <label htmlFor="psa-quick-input" className="visually-hidden">
-            Perintah bahasa natural, contoh 250 USDT ke ETH
-          </label>
-          <input
-            id="psa-quick-input"
-            className="psa-qc-input"
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onRunQuickCommand(query)}
-            placeholder="Contoh: 250 USDT ke ETH"
-            disabled={loading}
-          />
+          <div className="psa-qc-head-label">
+            <span className="psa-qc-label">Quick Command</span>
+            <span
+              className="psa-info-dot"
+              tabIndex={0}
+              title="Ketik kalimat bebas, misalnya “250 USDT ke ETH”, terus tekan Proses."
+              aria-label="Info Quick Command"
+            >
+              <IconInfo size={13} />
+            </span>
+          </div>
           <button
-            className="psa-qc-go"
-            onClick={() => onRunQuickCommand(query)}
-            disabled={loading}
+            type="button"
+            className={`psa-qc-toggle ${qcOpen ? "is-open" : ""}`}
+            onClick={() => setQcOpen((v) => !v)}
+            aria-expanded={qcOpen}
+            aria-controls="psa-qc-body"
           >
-            {loading ? "…" : "Hitung"}
+            {qcOpen ? "Sembunyikan" : "Tampilkan"}
+            <IconChevronDown size={14} />
           </button>
         </div>
-        <div className="psa-chip-scroll">
-          <div className="psa-chip-row">
-            {SAMPLES.map((s) => (
+        {qcOpen && (
+          <div id="psa-qc-body">
+            <div className="psa-qc-row">
+              <IconBolt size={16} className="psa-qc-icon" aria-hidden="true" />
+              <label htmlFor="psa-quick-input" className="visually-hidden">
+                Perintah bahasa natural, contoh 250 USDT ke ETH
+              </label>
+              <input
+                id="psa-quick-input"
+                className="psa-qc-input"
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && onRunQuickCommand(query)}
+                placeholder="Contoh: 250 USDT ke ETH"
+                disabled={loading}
+              />
               <button
-                key={s}
-                className={`psa-chip ${query === s ? "is-active" : ""}`}
-                onClick={() => {
-                  onQueryChange(s);
-                  onRunQuickCommand(s);
-                }}
+                className="psa-qc-go"
+                onClick={() => onRunQuickCommand(query)}
+                disabled={loading}
               >
-                {s}
+                {loading ? "…" : "Proses"}
               </button>
-            ))}
+            </div>
+            <div className="psa-chip-scroll">
+              <div className="psa-chip-row">
+                {SAMPLES.map((s) => (
+                  <button
+                    key={s}
+                    className={`psa-chip ${query === s ? "is-active" : ""}`}
+                    onClick={() => {
+                      onQueryChange(s);
+                      onRunQuickCommand(s);
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="psa-divider" />
 
       <div className="psa-field">
-        <div className="psa-field-top">
-          <span className="psa-field-label">Anda membayar</span>
-          <button
-            className="psa-field-copy"
-            onClick={copyPay}
-            title="Salin jumlah"
-            aria-label="Salin jumlah yang dibayar"
-            type="button"
-          >
-            {copiedPay ? <IconCheck size={13} /> : <IconCopy size={13} />}
-          </button>
-        </div>
+        {/* Nggak ada tombol salin di sini — nilai yang baru saja diketik   */}
+        {/* sendiri nggak perlu disalin, cuma hasil (di bawah) yang perlu.  */}
+        <div className="psa-field-label">Anda membayar</div>
         <div className="psa-field-row">
           <label htmlFor="psa-amount" className="visually-hidden">
             Jumlah yang dibayar

@@ -49,7 +49,7 @@
   /* (Popular Pairs, Riwayat, Insight) — converter-w (720px) cuma dipakai */
   /* buat kalkulator & bagian teks sempit lewat wrapper .psa-narrow.      */
   --shell-w: 1280px;
-  --converter-w: 720px;
+  --converter-w: 760px;
 
   --glass-bg: rgba(10, 18, 38, 0.82);
   --glass-blur: 20px;
@@ -152,11 +152,20 @@ img {
 .psa-bg-focus {
   position: absolute;
   left: 50%;
-  top: 420px;
-  width: min(900px, 140vw);
-  height: 700px;
-  transform: translateX(-50%);
-  background: radial-gradient(closest-side, rgba(34, 211, 238, 0.1), transparent 70%);
+  /* Piksel tetap (bukan %) — layer ini fixed menutupi seluruh viewport,   */
+  /* jadi persentase akan mengacu ke 100vh, bukan ke posisi converter di   */
+  /* dalam halaman yang discroll. Angkanya disesuaikan ke hero yang baru   */
+  /* lebih pendek, supaya cahayanya tetap jatuh di belakang kartu utama.   */
+  top: 500px;
+  width: min(760px, 130vw);
+  height: 560px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    rgba(26, 196, 230, 0.09) 0%,
+    rgba(17, 89, 145, 0.04) 40%,
+    transparent 72%
+  );
   pointer-events: none;
 }
 .psa-bg-stars {
@@ -283,22 +292,27 @@ img {
 .psa-nav {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: 32px;
 }
 .psa-nav a {
+  display: inline-flex;
+  align-items: center;
   font-size: 14px;
   color: var(--text-muted);
   text-decoration: none;
-  padding: var(--space-2) 0;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  transition: color 0.15s, background 0.15s;
 }
 .psa-nav a:hover {
   color: var(--text);
 }
+/* Pill lembut + garis bawah tipis — bukan garis panjang di bawah seluruh */
+/* item nav, biar state aktifnya kerasa presisi bukan sekadar dicoret.    */
 .psa-nav a.active {
   color: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 0 -2px 0 var(--primary);
 }
 .psa-header-right {
   display: flex;
@@ -496,26 +510,64 @@ img {
 /* ============================================================ */
 .psa-main {
   flex: 1;
-  padding: var(--space-7) 0 var(--space-6);
+  padding: 0 0 var(--space-6);
 }
+/* Padding vertikal hero sekarang dipegang hero itu sendiri (bukan lagi   */
+/* padding-top var(--main)) supaya bisa diperkecil lagi lewat media query */
+/* tinggi viewport tanpa ikut memotong padding bawah section lain.        */
 .psa-hero {
   max-width: var(--converter-w);
-  margin: 0 auto var(--space-6);
+  margin: 0 auto;
+  padding: 48px 0 30px;
   text-align: center;
 }
 .psa-h1 {
-  font-size: clamp(28px, 4vw, 44px);
+  font-size: clamp(30px, 2.8vw, 42px);
   font-weight: 800;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
   margin: 0;
   color: var(--text);
 }
 .psa-subtitle {
-  margin: var(--space-3) 0 0;
-  font-size: clamp(15px, 1.8vw, 17px);
+  margin-top: 16px;
+  font-size: 18px;
+  line-height: 1.5;
   color: var(--text-muted);
-  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  .psa-subtitle {
+    font-size: 15px;
+  }
+}
+/* Laptop 13-14" (mis. 1440x900, 1366x768) — bukan cuma soal lebar layar, */
+/* tinggi viewport-nya juga sempit, jadi hero dipadatkan lagi di sini     */
+/* supaya tombol Konversi tetap kelihatan tanpa scroll.                   */
+@media (max-height: 900px) and (min-width: 900px) {
+  .psa-hero {
+    padding: 28px 0 18px;
+  }
+  .psa-h1 {
+    font-size: 34px;
+  }
+  .psa-subtitle {
+    margin-top: 10px;
+    font-size: 16px;
+  }
+}
+/* Laptop 13" (1366x768 dkk) butuh dipangkas lebih jauh lagi supaya       */
+/* tombol Konversi tetap masuk first viewport tanpa scroll.               */
+@media (max-height: 800px) and (min-width: 900px) {
+  .psa-hero {
+    padding: 18px 0 12px;
+  }
+  .psa-h1 {
+    font-size: 28px;
+  }
+  .psa-subtitle {
+    margin-top: 6px;
+    font-size: 14px;
+  }
 }
 
 /* Stack sekarang selebar shell (1280px) — dulu dibatasi max-width:      */
@@ -574,7 +626,7 @@ img {
   border-color: rgba(34, 211, 238, 0.35);
 }
 .psa-converter {
-  padding: var(--space-6);
+  padding: 28px 32px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -582,6 +634,33 @@ img {
 @media (max-width: 640px) {
   .psa-converter {
     padding: 18px;
+  }
+}
+@media (max-height: 850px) and (min-width: 900px) {
+  .psa-converter {
+    padding-top: 22px;
+    padding-bottom: 22px;
+    gap: 12px;
+  }
+}
+@media (max-height: 800px) and (min-width: 900px) {
+  .psa-converter {
+    padding-top: 16px;
+    padding-bottom: 16px;
+    gap: 8px;
+  }
+  .psa-qc-input {
+    height: 46px;
+  }
+  .psa-qc-go {
+    height: 36px;
+  }
+  .psa-chip-scroll {
+    margin-top: 2px;
+  }
+  .psa-convert-btn {
+    height: 44px;
+    margin-top: 0;
   }
 }
 .psa-converter-title {
@@ -602,7 +681,36 @@ img {
 .psa-qc-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
+}
+.psa-qc-head-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Quick Command tetap terbuka default di desktop, tertutup di mobile     */
+/* (lihat Converter.jsx) — ini cuma tombol chevron-nya, bukan fitur baru, */
+/* jadi formnya sendiri (Anda membayar/menerima) tidak pernah disembunyikan. */
+.psa-qc-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.psa-qc-toggle:hover {
+  color: var(--text-muted);
+}
+.psa-qc-toggle svg {
+  transition: transform 0.18s ease;
+}
+.psa-qc-toggle.is-open svg {
+  transform: rotate(180deg);
 }
 .psa-qc-label {
   font-size: 13px;
@@ -639,11 +747,12 @@ img {
 .psa-qc-input {
   flex: 1;
   min-width: 0;
+  height: 54px;
   background: none;
   border: none;
   color: var(--text);
   font-size: 14.5px;
-  padding: 12px 0;
+  padding: 0;
 }
 .psa-qc-input::placeholder {
   color: var(--text-faint);
@@ -653,7 +762,8 @@ img {
 }
 .psa-qc-go {
   flex-shrink: 0;
-  padding: 9px 16px;
+  width: 120px;
+  height: 40px;
   border-radius: var(--radius-sm);
   border: none;
   background: var(--gradient-primary);
@@ -661,7 +771,6 @@ img {
   font-weight: 700;
   font-size: 13.5px;
   cursor: pointer;
-  min-height: 36px;
   transition: filter 0.15s;
 }
 .psa-qc-go:hover:not(:disabled) {
@@ -743,6 +852,12 @@ img {
   font-size: 12px;
   color: var(--danger);
 }
+@media (max-height: 850px) and (min-width: 900px) {
+  .psa-field {
+    min-height: 96px;
+    padding: var(--space-3) var(--space-4);
+  }
+}
 
 .psa-swap-row {
   display: flex;
@@ -752,9 +867,9 @@ img {
   z-index: 2;
 }
 .psa-swap-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   background: var(--surface-3);
   border: 1px solid var(--border-strong);
   display: flex;
@@ -764,12 +879,10 @@ img {
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, transform 0.22s ease;
 }
-.psa-swap-btn:hover:not(:disabled) {
-  color: var(--primary);
-  border-color: var(--primary);
-}
+.psa-swap-btn:hover:not(:disabled),
 .psa-swap-btn:focus-visible {
   color: var(--primary);
+  border-color: var(--primary);
 }
 .psa-swap-btn:disabled {
   opacity: 0.5;
