@@ -102,6 +102,11 @@ curl -s http://127.0.0.1:8787/api/health     # {"ok":true}
 ## 6. Pasang Nginx
 
 ```bash
+# Snippet header keamanan (CSP, X-Frame-Options, dll). Wajib disalin
+# duluan — nginx.conf meng-include-nya, jadi tanpa ini nginx -t gagal.
+sudo mkdir -p /etc/nginx/snippets
+sudo cp /opt/konverter/deploy/nginx-security.conf /etc/nginx/snippets/konverter-security.conf
+
 sudo cp /opt/konverter/deploy/nginx.conf /etc/nginx/sites-available/konverter
 sudo nano /etc/nginx/sites-available/konverter   # ganti DOMAIN_KAMU
 sudo ln -sf /etc/nginx/sites-available/konverter /etc/nginx/sites-enabled/
@@ -110,6 +115,22 @@ sudo nginx -t && sudo systemctl reload nginx
 ```
 
 Kalau belum punya domain, isi `server_name _;` dan akses lewat IP.
+
+**Catatan soal header keamanan.** `deploy/push.sh` menyalin ulang *isi*
+snippet-nya tiap deploy, tapi sengaja **tidak** menimpa
+`sites-available/konverter` — file itu berisi hal yang khusus per server
+(`server_name`, dan sertifikat yang ditambahkan certbot). Jadi kedua baris
+`include /etc/nginx/snippets/konverter-security.conf;` di dalamnya cukup
+dipasang sekali di sini. Baris itu harus ada **dua**: satu di level
+`server`, satu lagi di dalam `location /assets/` — di nginx, `add_header`
+berhenti diwarisi begitu sebuah `location` punya `add_header` sendiri,
+sehingga tanpa yang kedua semua aset kehilangan header keamanannya.
+
+Cek dengan:
+
+```bash
+curl -sI http://IP_SERVER/ | grep -i x-frame-options   # harus DENY
+```
 
 ## 7. HTTPS
 
