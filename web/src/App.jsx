@@ -303,6 +303,12 @@ export default function App() {
     <div className="psa-app">
       <Starfield />
       <div className="psa-content">
+        {/* Pengguna keyboard harus melewati ~30 elemen (nav + seluruh ticker) */}
+        {/* sebelum sampai ke kalkulator. Link ini tidak terlihat sama sekali  */}
+        {/* sampai di-Tab, jadi tampilannya tidak berubah bagi pengguna mouse. */}
+        <a className="psa-skip-link" href="#converter">
+          Langsung ke kalkulator
+        </a>
         <Header />
         <MarketTicker onSelect={onTickerSelect} />
 

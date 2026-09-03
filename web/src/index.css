@@ -2932,3 +2932,39 @@ img {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ============================================================ */
+/*  Skip link                                                      */
+/* ============================================================ */
+/* Sepenuhnya di luar layar sampai menerima fokus keyboard — jadi   */
+/* tidak mengubah tampilan sedikit pun bagi pengguna mouse/sentuh,  */
+/* tapi jadi hal pertama yang ditemui pengguna keyboard.            */
+.psa-skip-link {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -120%);
+  z-index: 100;
+  padding: 12px 22px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--primary);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.15s ease-out;
+}
+/* Sengaja :focus, BUKAN :focus-visible. Skip link memang hanya bisa    */
+/* dijangkau keyboard, dan :focus-visible ditentukan secara heuristik   */
+/* oleh browser sehingga bisa tidak aktif pada fokus programatik —      */
+/* akibatnya link-nya menerima fokus tapi tetap tak terlihat.           */
+.psa-skip-link:focus {
+  transform: translate(-50%, 0);
+  outline: 2px solid var(--text);
+  outline-offset: -4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-skip-link {
+    transition: none;
+  }
+}

@@ -76,8 +76,13 @@ export default function Converter({
         <div className="psa-qc-head">
           <div className="psa-qc-head-label">
             <span className="psa-qc-label">Quick Command</span>
+            {/* role="note" wajib ada: aria-label tidak diizinkan di <span>   */}
+            {/* polos tanpa role, dan tanpa role pembaca layar boleh          */}
+            {/* mengabaikan labelnya sama sekali (terdeteksi axe-core sebagai */}
+            {/* aria-prohibited-attr). "note" = informasi pelengkap.          */}
             <span
               className="psa-info-dot"
+              role="note"
               tabIndex={0}
               title="Ketik kalimat bebas, misalnya “250 USDT ke ETH”, terus tekan Proses."
               aria-label="Info Quick Command"

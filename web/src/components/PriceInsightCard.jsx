@@ -136,8 +136,15 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
         <div className="psa-insight-price-col">
           <span className="psa-insight-pair">
             {pair.pairLabel}
+            {/* role="note": lihat catatan yang sama di Converter.jsx */}
             {pair.isProxy && (
-              <span className="psa-info-dot" tabIndex={0} title={pair.proxyNote} aria-label={pair.proxyNote}>
+              <span
+                className="psa-info-dot"
+                role="note"
+                tabIndex={0}
+                title={pair.proxyNote}
+                aria-label={pair.proxyNote}
+              >
                 <IconInfo size={11} />
               </span>
             )}
