@@ -19,9 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node 22 = versi yang benar-benar jalan di VPS produksi (v22.23.1),
+      # sekaligus versi minimum yang dibutuhkan jsdom 30 (^22.22.2). Dengan
+      # Node 20, jsdom gagal di-require dan seluruh tes komponen error.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
 
@@ -64,7 +67,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: server/package-lock.json
 
