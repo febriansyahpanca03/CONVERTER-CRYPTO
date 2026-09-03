@@ -178,7 +178,30 @@ app.post("/api/assistant", rateLimit, async (req, res) => {
   }
 });
 
-/* ---------- Harga, dengan cache 20 detik ---------------------------- */
+/* ---------- Single-flight ke CoinGecko ------------------------------ */
+/* Cache saja tidak cukup: begitu TTL habis, SEMUA permintaan yang masuk */
+/* bersamaan sama-sama meleset dari cache dan sama-sama menembak         */
+/* CoinGecko (thundering herd). Sepuluh pengunjung barengan = sepuluh    */
+/* panggilan upstream untuk data yang sama persis.                       */
+/*                                                                       */
+/* Dengan ini, permintaan pertama yang meleset yang benar-benar menembak */
+/* upstream; yang lain menunggu Promise yang sama. Ini penting karena    */
+/* kuota CoinGecko-lah yang dulu bikin grafik mati total.                */
+/*                                                                       */
+/* Catatan jujur: di serverless (Vercel) cakupannya per-instance, sama   */
+/* seperti cache dan rate limiter. Tetap memangkas banyak, tapi bukan    */
+/* jaminan global — untuk itu perlu store bersama seperti Redis.         */
+const inFlight = new Map();
+
+function singleFlight(key, fn) {
+  const running = inFlight.get(key);
+  if (running) return running;
+  const p = fn().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
+/* ---------- Harga, dengan cache 30 detik ---------------------------- */
 /* Cache memangkas panggilan ke CoinGecko drastis: sepuluh orang yang   */
 /* menghitung BTC dalam menit yang sama hanya jadi tiga permintaan.     */
 
@@ -187,8 +210,8 @@ const priceCache = new Map();
 // frontend juga sudah diubah supaya semua permintaan harga (fetchRates,
 // ticker, Popular Pairs) berbagi cache key yang sama sebisa mungkin, jadi
 // TTL yang lebih panjang di sini langsung memangkas jumlah panggilan nyata
-// ke CoinGecko — penting karena situs ini jalan tanpa API key terdaftar
-// (lihat komentar COINGECKO_API_KEY di .env), jadi jatahnya ketat sekali.
+// ke CoinGecko. Kuotanya tetap perlu dijaga meski API key Demo sudah
+// terpasang — paket Demo pun ada batas per menit / per bulannya.
 const PRICE_TTL_MS = 30_000;
 
 app.get("/api/price", rateLimitPublicData, async (req, res) => {
@@ -217,17 +240,22 @@ app.get("/api/price", rateLimitPublicData, async (req, res) => {
     "&include_last_updated_at=true&include_24hr_change=true";
 
   try {
-    const r = await fetch(url, {
-      headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
+    const result = await singleFlight(`price|${key}`, async () => {
+      const r = await fetch(url, {
+        headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
+      });
+      if (!r.ok) return { status: r.status };
+      const body = await r.json();
+      priceCache.set(key, { at: Date.now(), body });
+      return { body };
     });
-    if (!r.ok) {
+
+    if (result.status) {
       if (hit) return res.json(hit.body); // sajikan data basi daripada gagal
-      return res.status(r.status).json({ error: `CoinGecko ${r.status}` });
+      return res.status(result.status).json({ error: `CoinGecko ${result.status}` });
     }
-    const body = await r.json();
-    priceCache.set(key, { at: Date.now(), body });
     res.set("x-cache", "miss");
-    res.json(body);
+    res.json(result.body);
   } catch (err) {
     console.error("price", err);
     if (hit) return res.json(hit.body);
@@ -260,19 +288,24 @@ app.get("/api/icons", rateLimitPublicData, async (req, res) => {
     `?vs_currency=usd&ids=${ids.join(",")}&sparkline=false`;
 
   try {
-    const r = await fetch(url, {
-      headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
+    const result = await singleFlight(`icons|${key}`, async () => {
+      const r = await fetch(url, {
+        headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
+      });
+      if (!r.ok) return { status: r.status };
+      const list = await r.json();
+      const body = {};
+      for (const c of list) body[c.id] = c.image;
+      iconCache.set(key, { at: Date.now(), body });
+      return { body };
     });
-    if (!r.ok) {
+
+    if (result.status) {
       if (hit) return res.json(hit.body);
-      return res.status(r.status).json({ error: `CoinGecko ${r.status}` });
+      return res.status(result.status).json({ error: `CoinGecko ${result.status}` });
     }
-    const list = await r.json();
-    const body = {};
-    for (const c of list) body[c.id] = c.image;
-    iconCache.set(key, { at: Date.now(), body });
     res.set("x-cache", "miss");
-    res.json(body);
+    res.json(result.body);
   } catch (err) {
     console.error("icons", err);
     if (hit) return res.json(hit.body);
@@ -322,21 +355,26 @@ app.get("/api/chart", rateLimitPublicData, async (req, res) => {
   const url = `https://api.coingecko.com/api/v3/coins/${id}/${path}?vs_currency=${vs}&days=${days}`;
 
   try {
-    const r = await fetch(url, {
-      headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
+    const result = await singleFlight(`chart|${key}`, async () => {
+      const r = await fetch(url, {
+        headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
+      });
+      if (!r.ok) return { status: r.status };
+      const raw = await r.json();
+      // Dipangkas ke yang benar-benar dipakai chart — market_chart aslinya
+      // juga membawa market_caps yang tidak kita perlukan sama sekali.
+      const body = type === "candle" ? raw : { prices: raw.prices || [] };
+      chartCache.set(key, { at: Date.now(), body });
+      return { body };
     });
-    if (!r.ok) {
+
+    if (result.status) {
       if (hit) return res.json(hit.body); // sajikan data basi daripada gagal total
-      if (r.status === 429) return res.status(429).json({ error: "Batas API CoinGecko tercapai." });
-      return res.status(r.status).json({ error: `CoinGecko ${r.status}` });
+      if (result.status === 429) return res.status(429).json({ error: "Batas API CoinGecko tercapai." });
+      return res.status(result.status).json({ error: `CoinGecko ${result.status}` });
     }
-    const raw = await r.json();
-    // Dipangkas ke yang benar-benar dipakai chart — market_chart aslinya
-    // juga membawa market_caps yang tidak kita perlukan sama sekali.
-    const body = type === "candle" ? raw : { prices: raw.prices || [] };
-    chartCache.set(key, { at: Date.now(), body });
     res.set("x-cache", "miss");
-    res.json(body);
+    res.json(result.body);
   } catch (err) {
     console.error("chart", err);
     if (hit) return res.json(hit.body);

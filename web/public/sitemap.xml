@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Situs ini satu halaman (single page) — bagian Market/About cuma anchor
+  di halaman yang sama, jadi tidak didaftarkan sebagai URL terpisah.
+  Mendaftarkan #anchor sebagai URL sendiri justru dianggap duplikat oleh
+  Google. Kalau nanti ada halaman betulan (mis. /kebijakan-privasi),
+  tambahkan <url> baru di sini.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.pancaswapagent.my.id/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

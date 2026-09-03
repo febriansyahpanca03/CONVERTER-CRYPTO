@@ -2894,3 +2894,41 @@ img {
     right: -12px;
   }
 }
+
+/* ============================================================ */
+/*  Error boundary                                                 */
+/* ============================================================ */
+/* Hanya tampil kalau ada komponen yang melempar error saat render — */
+/* dalam kondisi normal tidak ada satu pun elemen ini di halaman.    */
+.psa-boundary {
+  max-width: var(--converter-w);
+  margin: 80px auto;
+  padding: var(--space-6);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+.psa-boundary-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.psa-boundary-text {
+  margin: 0 0 var(--space-4);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.psa-boundary-btn {
+  height: 44px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--gradient-primary);
+  color: var(--bg);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}

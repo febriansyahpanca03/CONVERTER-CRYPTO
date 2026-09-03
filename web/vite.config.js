@@ -11,4 +11,11 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    // Tes lib/ murni fungsi jadi sebenarnya tidak butuh DOM, tapi tes
+    // komponen butuh — jsdom dipakai untuk keduanya biar satu konfigurasi.
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.js"],
+  },
 });

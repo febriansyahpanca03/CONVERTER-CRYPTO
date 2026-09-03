@@ -5,8 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Panca Swap Agent — Crypto Converter</title>
     <meta name="description" content="Konversi BTC, ETH, USDT, IDR, dan aset crypto lainnya menggunakan harga pasar terkini." />
-    <link rel="canonical" href="https://converter-crypto.vercel.app/">
+    <!-- Domain kanonik = domain kustom (www.pancaswapagent.my.id), BUKAN URL
+         *.vercel.app. Apex pancaswapagent.my.id sudah 308-redirect ke www di
+         sisi Vercel, jadi cukup satu URL kanonik di sini. Kalau ini masih
+         menunjuk vercel.app, Google menganggap versi itu yang resmi dan
+         domain kustomnya tidak ter-index dengan benar. -->
+    <link rel="canonical" href="https://www.pancaswapagent.my.id/">
     <meta name="theme-color" content="#080B14">
+
+    <!-- PWA: cuma manifest + ikon, tanpa service worker. Efeknya konverter
+         ini bisa dipasang ke home screen (berguna karena ini alat yang
+         dipakai berulang), tapi TIDAK ada cache offline yang berisiko
+         menyajikan harga basi — harga wajib selalu dari jaringan. -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23080B14'/%3E%3Ctext x='32' y='43' font-family='Arial,sans-serif' font-weight='700' font-size='30' fill='%2322D3EE' text-anchor='middle'%3E%E2%87%85%3C/text%3E%3C/svg%3E">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,21 +30,29 @@
     <link rel="preload" href="/fonts/orbitron/Orbitron-Variable.ttf" as="font" type="font/ttf" crossorigin>
 
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://converter-crypto.vercel.app/">
+    <meta property="og:site_name" content="Panca Swap Agent">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:url" content="https://www.pancaswapagent.my.id/">
     <meta property="og:title" content="Panca Swap Agent — Crypto Converter">
     <meta property="og:description" content="Konversi BTC, ETH, USDT, IDR, dan aset crypto lainnya menggunakan harga pasar terkini.">
-    <meta property="og:image" content="/space-bg.jpg">
+    <!-- og:image WAJIB URL absolut — dengan path relatif, WhatsApp/Twitter/
+         Facebook tidak bisa me-resolve-nya dan preview link-nya muncul tanpa
+         gambar sama sekali. Ukurannya 1200x630 (rasio OG standar). -->
+    <meta property="og:image" content="https://www.pancaswapagent.my.id/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Panca Swap Agent — konverter kripto dengan harga pasar terkini">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Panca Swap Agent">
     <meta name="twitter:description" content="Konversi BTC, ETH, USDT, IDR, dan aset crypto lainnya menggunakan harga pasar terkini.">
-    <meta name="twitter:image" content="/space-bg.jpg">
+    <meta name="twitter:image" content="https://www.pancaswapagent.my.id/og-image.jpg">
 
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "Panca Swap Agent",
-      "url": "https://converter-crypto.vercel.app/",
+      "url": "https://www.pancaswapagent.my.id/",
       "description": "Konversi BTC, ETH, USDT, IDR, dan aset crypto lainnya menggunakan harga pasar terkini.",
       "applicationCategory": "FinanceApplication",
       "operatingSystem": "Any browser",

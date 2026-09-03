@@ -25,9 +25,10 @@ function Avatar({ size = 22, circle = true }) {
 }
 
 /* NB: sempat ada versi maskot yang jalan bolak-balik pakai 86 potongan */
-/* pose (masih ada filenya di /public/mascot/frame_*.png kalau suatu    */
-/* saat mau dipakai lagi) — sekarang diganti badge bundar statis biar   */
-/* menyatu dengan gaya widget bantuan yang lebih tenang/compact.        */
+/* pose, sekarang diganti badge bundar statis biar menyatu dengan gaya  */
+/* widget bantuan yang lebih tenang/compact. File frame-nya (1,7 MB)    */
+/* sudah dihapus dari /public karena ikut ter-deploy tanpa dipakai —    */
+/* ada di riwayat git kalau suatu saat mau dipakai lagi.                */
 
 /* Maskot robot, sekarang jadi asisten AI beneran (bukan FAQ statis) —  */
 /* pakai Groq yang sudah terhubung lewat /api/assistant, dengan prompt  */

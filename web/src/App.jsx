@@ -5,6 +5,7 @@ import MarketTicker from "./components/MarketTicker.jsx";
 import Converter from "./components/Converter.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import PriceInsightCard from "./components/PriceInsightCard.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import Toast from "./components/Toast.jsx";
 import HelpBot from "./components/HelpBot.jsx";
 import { COINS, known } from "./data/assets.js";
@@ -379,7 +380,13 @@ export default function App() {
                   onClear={clearHistory}
                   icons={icons}
                 />
-                <PriceInsightCard fromSym={fromSym} toSym={toSym} icons={icons} />
+                {/* Kartu grafik itu pelengkap, dan dia satu-satunya bagian  */}
+                {/* yang menggambar data eksternal berbentuk bebas. Kalau     */}
+                {/* dia gagal render, cukup dia yang hilang — kalkulator dan  */}
+                {/* riwayat di sebelahnya tidak boleh ikut mati.              */}
+                <ErrorBoundary fallback={null}>
+                  <PriceInsightCard fromSym={fromSym} toSym={toSym} icons={icons} />
+                </ErrorBoundary>
               </div>
 
               <WhyPancaSwap />
@@ -389,7 +396,7 @@ export default function App() {
                   <h2 className="psa-about-title">Tentang Panca Swap</h2>
                   <p className="psa-about-text">
                     Ini sebenarnya cuma kalkulator, bukan exchange beneran. Ketik kalimat biasa kayak
-                    "250 USDT ke ETH" atau pilih sendiri asetnya, nanti dihitungin pakai harga dari
+                    &quot;250 USDT ke ETH&quot; atau pilih sendiri asetnya, nanti dihitungin pakai harga dari
                     CoinGecko. Nggak ada dompet yang tersambung, nggak ada dana yang disimpan, dan
                     nggak ada transaksi asli yang jalan — murni buat lihat-lihat kurs aja.
                   </p>
@@ -431,7 +438,10 @@ const POPULAR_PAIRS = [
 ];
 const POPULAR_PAIRS_VISIBLE_DEFAULT = 6;
 
-function PopularPairs({ icons, onSelect }) {
+/* Di-export supaya bisa dites terpisah (lihat App.popular.test.jsx) —     */
+/* kartu-kartu di sini pernah menampilkan angka USD di bawah label "/IDR", */
+/* jenis bug yang cuma ketahuan lewat tes render, bukan tes fungsi murni.  */
+export function PopularPairs({ icons, onSelect }) {
   const [expanded, setExpanded] = useState(false);
   const visiblePairs = expanded ? POPULAR_PAIRS : POPULAR_PAIRS.slice(0, POPULAR_PAIRS_VISIBLE_DEFAULT);
 
@@ -555,7 +565,11 @@ function SiteFooter() {
         <nav className="psa-footer-links" aria-label="Tautan footer">
           {/* Belum ada halaman dokumentasi/syarat terpisah — diarahkan ke  */}
           {/* bagian yang paling relevan di halaman ini, bukan link mati.  */}
-          <a href="https://github.com/febriansyahpanca03/CONVERTER-CRYPTO" target="_blank" rel="noopener">
+          <a
+            href="https://github.com/febriansyahpanca03/CONVERTER-CRYPTO"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Dokumentasi
           </a>
           <a href="#about">Kebijakan Privasi</a>
@@ -563,7 +577,7 @@ function SiteFooter() {
           <a
             href="https://github.com/febriansyahpanca03/CONVERTER-CRYPTO/issues"
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
             aria-label="Laporkan masalah di GitHub"
             title="Laporkan masalah"
           >

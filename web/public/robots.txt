@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Endpoint API tidak perlu di-crawl — isinya JSON harga yang berubah tiap
+# menit, tidak ada nilainya di hasil pencarian dan cuma menghabiskan kuota
+# CoinGecko tiap kali bot mampir.
+Disallow: /api/
+
+Sitemap: https://www.pancaswapagent.my.id/sitemap.xml

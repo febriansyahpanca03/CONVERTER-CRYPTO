@@ -80,7 +80,6 @@ export function useChartData({ coinId, vsCurrency, type, period, retryNonce = 0 
       clearTimeout(debounceRef.current);
       abortRef.current?.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coinId, vsCurrency, type, period, retryNonce]);
 
   return state;

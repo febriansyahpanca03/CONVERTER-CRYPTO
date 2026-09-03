@@ -1,14 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import CoinIcon from "./CoinIcon.jsx";
 import { IconInfo } from "./Icons.jsx";
 import ChartTypeToggle from "./chart/ChartTypeToggle.jsx";
 import TimeframeSelector from "./chart/TimeframeSelector.jsx";
-import LinePriceChart from "./chart/LinePriceChart.jsx";
-import CandlestickPriceChart from "./chart/CandlestickPriceChart.jsx";
 import ChartLoadingState from "./chart/ChartLoadingState.jsx";
 import ChartErrorState from "./chart/ChartErrorState.jsx";
 import ChartEmptyState from "./chart/ChartEmptyState.jsx";
-import ChartDetailModal from "./chart/ChartDetailModal.jsx";
+
+/* Cuma tiga komponen ini yang menarik `lightweight-charts` (~180 KB dari  */
+/* bundle). Dulu ikut di-load di bundle awal padahal kartunya ada di bawah */
+/* fold dan banyak pengunjung tidak pernah scroll ke sana — sekarang       */
+/* chunk-nya baru diambil saat datanya benar-benar siap digambar.          */
+/*                                                                         */
+/* Kerangka kartunya (judul, harga, toggle, statistik) TIDAK ikut di-lazy: */
+/* itu tetap render seketika, jadi tidak ada perubahan tampilan maupun     */
+/* pergeseran layout. Fallback-nya pun skeleton yang sama persis dengan    */
+/* yang sudah dipakai saat menunggu data.                                  */
+const LinePriceChart = lazy(() => import("./chart/LinePriceChart.jsx"));
+const CandlestickPriceChart = lazy(() => import("./chart/CandlestickPriceChart.jsx"));
+const ChartDetailModal = lazy(() => import("./chart/ChartDetailModal.jsx"));
 import { useChartData } from "../hooks/useChartData.js";
 import {
   resolveChartPair,
@@ -166,21 +176,23 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
         {status === "done" && seriesLength === 0 && <ChartEmptyState height={CHART_HEIGHT} />}
         {data && seriesLength > 0 && (
           <div className={status === "loading" ? "psa-chart-dim" : ""}>
-            {chartType === "line" ? (
-              <LinePriceChart
-                points={data.points}
-                height={CHART_HEIGHT}
-                quoteSym={pair.vsCurrency}
-                onCrosshairMove={setHoverPoint}
-              />
-            ) : (
-              <CandlestickPriceChart
-                candles={data.candles}
-                height={CHART_HEIGHT}
-                quoteSym={pair.vsCurrency}
-                onCrosshairMove={setHoverPoint}
-              />
-            )}
+            <Suspense fallback={<ChartLoadingState height={CHART_HEIGHT} />}>
+              {chartType === "line" ? (
+                <LinePriceChart
+                  points={data.points}
+                  height={CHART_HEIGHT}
+                  quoteSym={pair.vsCurrency}
+                  onCrosshairMove={setHoverPoint}
+                />
+              ) : (
+                <CandlestickPriceChart
+                  candles={data.candles}
+                  height={CHART_HEIGHT}
+                  quoteSym={pair.vsCurrency}
+                  onCrosshairMove={setHoverPoint}
+                />
+              )}
+            </Suspense>
           </div>
         )}
       </div>
@@ -212,25 +224,31 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
       </p>
 
       {modalOpen && (
-        <ChartDetailModal
-          onClose={() => setModalOpen(false)}
-          pair={pair}
-          icons={icons}
-          chartType={chartType}
-          onChartTypeChange={setChartType}
-          period={period}
-          onPeriodChange={setPeriod}
-          candleDisabled={candleDisabled}
-          data={data}
-          status={status}
-          error={error}
-          stats={stats}
-          updatedAt={updatedAt}
-          dataStatus={dataStatus}
-          displayPoint={displayPoint}
-          onHoverPoint={setHoverPoint}
-          onRetry={() => setRetryNonce((n) => n + 1)}
-        />
+        /* Tanpa fallback: modal cuma muncul setelah diklik, dan chunk-nya    */
+        /* sudah ikut terambil bareng chart utama di atas — jadi praktis      */
+        /* selalu sudah ada di cache saat sampai sini. Fallback null lebih    */
+        /* baik daripada mengedipkan kotak kosong seukuran modal.             */
+        <Suspense fallback={null}>
+          <ChartDetailModal
+            onClose={() => setModalOpen(false)}
+            pair={pair}
+            icons={icons}
+            chartType={chartType}
+            onChartTypeChange={setChartType}
+            period={period}
+            onPeriodChange={setPeriod}
+            candleDisabled={candleDisabled}
+            data={data}
+            status={status}
+            error={error}
+            stats={stats}
+            updatedAt={updatedAt}
+            dataStatus={dataStatus}
+            displayPoint={displayPoint}
+            onHoverPoint={setHoverPoint}
+            onRetry={() => setRetryNonce((n) => n + 1)}
+          />
+        </Suspense>
       )}
     </div>
   );
