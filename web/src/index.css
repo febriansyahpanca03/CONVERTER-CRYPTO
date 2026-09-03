@@ -201,16 +201,16 @@ img {
 .psa-bg-parallax-galaxy::after {
   content: "";
   position: absolute;
-  left: 72%;
-  top: 33%;
-  width: 82vmax;
-  height: 47vmax;
+  left: 76%;
+  top: 46%;
+  width: 96vmax;
+  height: 55vmax;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     ellipse at center,
-    rgba(44, 202, 238, 0.1) 0%,
-    rgba(90, 94, 220, 0.07) 22%,
-    rgba(113, 73, 180, 0.04) 38%,
+    rgba(44, 202, 238, 0.12) 0%,
+    rgba(90, 94, 220, 0.08) 22%,
+    rgba(113, 73, 180, 0.05) 38%,
     transparent 68%
   );
 }
@@ -235,19 +235,19 @@ img {
 /* tidak terasa seperti target bidik di belakang converter.             */
 .psa-bg-galaxy {
   position: absolute;
-  /* Inti galaksi di kuadran kanan-atas, jelas di luar kartu converter —  */
-  /* kalau ditaruh di tengah, bagian paling terang persis jatuh di        */
-  /* belakang angka & input, dan kalkulatornya kalah fokus.               */
-  left: 72%;
-  top: 33%;
+  /* Inti galaksi di kanan-tengah, jelas di luar kartu converter — kalau  */
+  /* ditaruh di tengah, bagian paling terang persis jatuh di belakang     */
+  /* angka & input, dan kalkulatornya kalah fokus.                        */
+  left: 76%;
+  top: 46%;
   /* Elemennya sengaja TIDAK persegi, mengikuti rasio fotonya (~1.75).    */
   /* Kalau persegi + background-size:contain, tepi lurus fotonya jatuh di */
   /* area mask yang masih pekat dan garis batasnya kelihatan menyapu layar */
   /* tiap kali berputar. Dengan elemen serasio + `cover`, tidak ada tepi   */
   /* foto di dalam elemen sama sekali — yang jadi batas cuma mask elips    */
   /* yang sudah transparan penuh sebelum mencapai pinggir elemen.          */
-  width: 82vmax;
-  height: 47vmax;
+  width: 96vmax;
+  height: 55vmax;
   transform: translate(-50%, -50%);
   transform-origin: center;
   background: url("/space-bg.jpg") center / cover no-repeat;
@@ -255,13 +255,15 @@ img {
   /* warna hangat yang pucat, matriks hue-rotate CSS cuma menggesernya ke */
   /* olive, bukan biru. Jadi: sepia() dulu untuk menyeragamkan semua      */
   /* piksel ke satu hue hangat, baru diputar ~180 derajat jadi biru.      */
-  filter: sepia(0.9) hue-rotate(178deg) saturate(1.7) brightness(1.02) contrast(1.05);
-  opacity: 0.26;
+  filter: sepia(0.9) hue-rotate(178deg) saturate(1.75) brightness(1.05) contrast(1.08);
+  opacity: 0.62;
   /* Elips (bukan circle): di elemen non-persegi, `circle` memakai radius  */
   /* farthest-corner sehingga sisi atas-bawah masih pekat saat mencapai    */
-  /* pinggir elemen — tepinya jadi kelihatan. */
-  mask-image: radial-gradient(ellipse, black 0%, rgba(0, 0, 0, 0.88) 40%, transparent 72%);
-  -webkit-mask-image: radial-gradient(ellipse, black 0%, rgba(0, 0, 0, 0.88) 40%, transparent 72%);
+  /* pinggir elemen — tepinya jadi kelihatan.                              */
+  /* Bagian pekatnya dibuat melebar (0.92 sampai 52%) supaya lengan        */
+  /* spiralnya benar-benar terbaca, bukan cuma inti terangnya.             */
+  mask-image: radial-gradient(ellipse, black 0%, rgba(0, 0, 0, 0.92) 52%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse, black 0%, rgba(0, 0, 0, 0.92) 52%, transparent 80%);
   animation: psa-galaxy-rotation 190s linear infinite;
   will-change: transform;
 }
@@ -408,14 +410,16 @@ img {
   position: absolute;
   z-index: 5;
   inset: 0;
-  /* Bagian atas sengaja lebih tipis dari resep awal (0.58): dengan 0.58  */
-  /* galaksinya praktis tidak kelihatan sama sekali. Bawah tetap pekat    */
-  /* (0.9) karena di situ ada teks About & footer yang panjang.           */
+  /* Bagian atas jauh lebih tipis dari resep awal (0.58) supaya lengan    */
+  /* spiral galaksinya benar-benar terbaca. Makin ke bawah makin pekat    */
+  /* karena di situ ada teks About & footer yang panjang — di area itu    */
+  /* keterbacaan menang atas pemandangan.                                 */
   background: linear-gradient(
     180deg,
-    rgba(4, 7, 15, 0.46) 0%,
-    rgba(4, 7, 15, 0.66) 45%,
-    rgba(6, 8, 16, 0.9) 100%
+    rgba(4, 7, 15, 0.2) 0%,
+    rgba(4, 7, 15, 0.34) 42%,
+    rgba(5, 8, 16, 0.62) 68%,
+    rgba(6, 8, 16, 0.88) 100%
   );
 }
 
@@ -428,14 +432,17 @@ img {
   position: absolute;
   z-index: 6;
   left: 50%;
-  top: 52%;
-  width: min(900px, 90vw);
-  height: 670px;
+  /* Dinaikkan ke tepi atas kartu converter (bukan di tengah kartu) —      */
+  /* cahayanya jadi terbaca sebagai sumber cahaya di atas kalkulator,      */
+  /* bukan sekadar kabut di belakangnya.                                   */
+  top: 38%;
+  width: min(1000px, 92vw);
+  height: 560px;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     ellipse,
-    rgba(34, 211, 238, 0.105) 0%,
-    rgba(56, 189, 248, 0.045) 42%,
+    rgba(34, 211, 238, 0.16) 0%,
+    rgba(56, 189, 248, 0.06) 42%,
     transparent 72%
   );
   filter: blur(12px);
@@ -493,7 +500,7 @@ img {
   .psa-bg-galaxy {
     width: 165vmax;
     height: 94vmax;
-    opacity: 0.15;
+    opacity: 0.4;
     animation-duration: 220s;
   }
   .psa-stars-far {
