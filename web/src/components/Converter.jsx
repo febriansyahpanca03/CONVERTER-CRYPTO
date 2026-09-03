@@ -15,6 +15,60 @@ import {
 
 const SAMPLES = ["250 USDT ke ETH", "1 BTC ke IDR", "0.5 ETH ke SOL", "10 SOL ke DOGE"];
 
+/* Durasi count-up hasil konversi. Cukup lama untuk terbaca sebagai
+   "menghitung", masih jauh dari terasa lambat saat dipakai berulang. */
+const COUNT_UP_MS = 380;
+
+/* Menganimasikan angka hasil dari nilai sebelumnya ke nilai baru.
+
+   Sengaja menulis langsung ke DOM lewat ref, BUKAN setState per frame:
+   satu konversi akan memicu ~23 render kalau pakai state, padahal yang
+   berubah cuma teks di satu elemen. Ini juga menghindari efek yang
+   memanggil setState di setiap frame.
+
+   Nilai akhirnya tetap dirender React lewat JSX, jadi kalau animasinya
+   dilewati (reduced-motion) atau di-unmount di tengah jalan, teks yang
+   tampil tetap benar. */
+function useCountUp(ref, target, formatter, aktif) {
+  const sebelumnya = useRef(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    const dari = sebelumnya.current;
+    // HANYA disimpan saat target-nya angka. Sebelumnya nilai ini juga
+    // di-null-kan setiap target null, padahal di antara dua konversi selalu
+    // ada satu render berstatus 'loading' dengan target null — akibatnya
+    // nilai awal selalu hilang dan animasinya tidak pernah jalan.
+    if (Number.isFinite(target)) sebelumnya.current = target;
+
+    if (!el || !aktif || !Number.isFinite(target)) return undefined;
+    // Tidak ada nilai awal (hasil pertama) atau nilainya sama — tidak ada
+    // yang perlu dihitung, biarkan React yang menampilkannya.
+    if (!Number.isFinite(dari) || dari === target) return undefined;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
+
+    let raf;
+    const t0 = performance.now();
+    function langkah(t) {
+      // Dijepit di kedua ujung. Batas bawahnya penting: timestamp yang
+      // diberikan requestAnimationFrame adalah waktu MULAI frame, yang bisa
+      // lebih awal dari performance.now() saat animasi dijadwalkan. Tanpa
+      // Math.max(0), progresnya negatif dan easing-nya melempar nilai ke
+      // bawah nilai awal — sempat terlihat sebagai angka MINUS sepersekian
+      // detik di kolom hasil.
+      const p = Math.min(1, Math.max(0, (t - t0) / COUNT_UP_MS));
+      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic: cepat lalu melandai
+      el.textContent = formatter(dari + (target - dari) * eased);
+      if (p < 1) raf = requestAnimationFrame(langkah);
+    }
+    raf = requestAnimationFrame(langkah);
+    return () => cancelAnimationFrame(raf);
+    // formatter dibuat ulang tiap render tapi isinya stabil per toSym;
+    // memasukkannya ke deps akan me-restart animasi tanpa alasan.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, aktif]);
+}
+
 /* Satu kartu utama: Quick Command di atas (buat yang mau ketik bebas),  */
 /* form terstruktur di bawahnya (buat yang mau pilih manual) — dua-duanya */
 /* berbagi hasil yang sama, bukan dua fitur terpisah.                    */
@@ -46,7 +100,14 @@ export default function Converter({
   const loading = status === "loading";
   const showResult = status === "done" && result;
   const amountRef = useRef(null);
+  const angkaRef = useRef(null);
   const resultDisplay = showResult ? formatAmountSafe(result.value, toSym) : null;
+  useCountUp(
+    angkaRef,
+    showResult ? result.value : null,
+    (v) => formatAmountSafe(v, toSym).text,
+    showResult
+  );
   // Putaran 180 derajat tiap klik tombol swap — bukan cuma efek hover,
   // biar terasa sebagai respons nyata terhadap aksi pengguna.
   const [swapTurns, setSwapTurns] = useState(0);
@@ -211,7 +272,15 @@ export default function Converter({
             aria-live="polite"
             title={resultDisplay?.isApprox ? `Nilai lengkap: ${resultDisplay.full} ${toSym.toUpperCase()}` : undefined}
           >
-            {loading ? "…" : resultDisplay ? resultDisplay.text : "0"}
+            {/* Angka yang dianimasikan di-aria-hidden: tanpa ini pembaca   */}
+            {/* layar akan membacakan setiap frame count-up-nya.            */}
+            <span ref={angkaRef} aria-hidden="true">
+              {loading ? "…" : resultDisplay ? resultDisplay.text : "0"}
+            </span>
+            {/* Nilai final, diumumkan sekali saja. */}
+            <span className="visually-hidden">
+              {loading ? "Menghitung" : resultDisplay ? `${resultDisplay.text} ${toSym.toUpperCase()}` : ""}
+            </span>
           </span>
           <CoinSelect value={toSym} onChange={onToChange} icons={icons} label="Aset tujuan" />
         </div>

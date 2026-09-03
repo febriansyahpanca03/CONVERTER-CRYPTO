@@ -320,6 +320,13 @@ export default function App() {
             </div>
 
             <div className="psa-stack">
+              {/* Selubung gelap di belakang SELURUH area data (pasangan     */}
+              {/* populer, riwayat, chart, fitur, About). Transparan di      */}
+              {/* bagian atas supaya kalkulator tetap duduk di langit yang   */}
+              {/* terbuka, lalu menggelap ke bawah supaya galaksi tidak      */}
+              {/* mengganggu blok teks yang panjang. Murni dekoratif.        */}
+              <div className="psa-stack-veil" aria-hidden="true" />
+
               {/* Kalkulator: sengaja tetap sempit (~720px) walau stack di   */}
               {/* sekitarnya sekarang selebar shell — .psa-narrow yang jaga  */}
               {/* lebarnya, bukan .psa-stack lagi (lihat catatan di CSS).    */}
@@ -376,6 +383,11 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              {/* Garis pemisah sangat halus antara kalkulator dan area    */}
+              {/* data — menandai pergantian "alat" ke "informasi" tanpa     */}
+              {/* menambah judul atau menu baru.                             */}
+              <div className="psa-data-divider" aria-hidden="true" />
 
               <PopularPairs icons={icons} onSelect={(f, t) => convert({ from: f, to: t, amount: amount || "1" })} />
 

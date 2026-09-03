@@ -78,9 +78,14 @@ describe("Converter", () => {
       status: "done",
       result: { value: 0.00003852, from: "usdt", to: "btc", updatedAt: Date.now() },
     });
-    // Nilainya diformat lewat formatAmountSafe, jadi yang dicek cukup
-    // bahwa angkanya muncul dan bukan placeholder "0".
-    expect(screen.getByText(/0[.,]0000/)).toBeInTheDocument();
+    // Hasilnya sengaja dirender dua kali: satu yang terlihat (di-aria-hidden
+    // karena angkanya dianimasikan count-up frame demi frame) dan satu teks
+    // khusus pembaca layar yang cuma berubah sekali. Keduanya dicek supaya
+    // salah satunya tidak diam-diam hilang.
+    const [terlihat, untukPembacaLayar] = screen.getAllByText(/0[.,]0000/);
+    expect(terlihat).toHaveAttribute("aria-hidden", "true");
+    expect(untukPembacaLayar).toHaveClass("visually-hidden");
+    expect(untukPembacaLayar).toHaveTextContent(/BTC/);
   });
 
   it("menonaktifkan tombol saat status loading dan menampilkan teks memuat", () => {

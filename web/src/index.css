@@ -54,7 +54,7 @@
 
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 22px;
+  --radius-lg: 24px;
   --radius-pill: 999px;
 
   --space-1: 4px;
@@ -80,8 +80,12 @@
   --shell-w: 1280px;
   --converter-w: 760px;
 
-  --glass-bg: rgba(10, 18, 38, 0.82);
-  --glass-blur: 20px;
+  /* Sedikit lebih gelap & lebih biru dari sebelumnya supaya kartu utama */
+  /* terbaca sebagai kaca di atas langit, bukan panel abu-abu yang        */
+  /* menempel. Blur 16px: cukup untuk memisahkan kartu dari galaksi tanpa */
+  /* membuat GPU bekerja keras di area sebesar ini.                       */
+  --glass-bg: rgba(7, 16, 34, 0.84);
+  --glass-blur: 16px;
   --gradient-primary: linear-gradient(135deg, #22d3ee, #38bdf8);
 }
 
@@ -162,14 +166,14 @@ img {
 /* Background luar angkasa berlapis. Urutan layer (bawah -> atas):    */
 /*                                                                    */
 /*   base navy (body)                                                 */
-/*   -> galaksi spiral yang berputar sangat lambat                    */
-/*   -> far starfield        -> near starfield + twinkle              */
-/*   -> meteor sesekali      -> scrim gelap                           */
-/*   -> focal glow converter -> konten situs (.psa-content)           */
+/*   -> galaksi spiral, rotasi sangat lambat                          */
+/*   -> starfield far -> mid -> near (makin dekat makin cepat drift)  */
+/*   -> twinkle -> meteor sesekali                                    */
+/*   -> scrim kiri-pekat  -> kubah gelap di belakang converter        */
+/*   -> vignette tepi     -> focal glow -> konten (.psa-content)      */
 /*                                                                    */
-/* Semuanya sekunder: pointer-events:none, tidak bisa diseleksi, dan  */
-/* redup di balik scrim — kalkulator yang harus jadi pusat perhatian, */
-/* bukan langitnya.                                                   */
+/* Semuanya dekoratif: pointer-events:none, tidak bisa diseleksi, dan */
+/* selalu berada di belakang teks.                                    */
 /* ---------------------------------------------------------------- */
 .psa-bg {
   position: fixed;
@@ -181,90 +185,79 @@ img {
   -webkit-user-select: none;
 }
 
-/* Parallax kursor (opsional, lihat Starfield.jsx) — galaksi & far stars */
-/* bergeser paling sedikit, near stars paling banyak, biar terasa ada    */
-/* kedalaman. var(--px)/var(--py) di-set lewat JS (rentang -0.5..0.5),   */
-/* default 0 kalau parallax dimatikan (mobile/touch/reduced-motion).     */
+/* Parallax kursor (lihat Starfield.jsx). Sengaja sangat kecil — maksimum */
+/* 8px di lapisan terdekat — supaya terasa sebagai kedalaman, bukan       */
+/* latar yang ikut bergoyang saat kursor lewat.                           */
 .psa-bg-parallax {
   position: absolute;
   inset: 0;
 }
 .psa-bg-parallax-galaxy {
   z-index: 1;
-  transform: translate3d(calc(var(--px, 0) * 6px), calc(var(--py, 0) * 6px), 0);
+  transform: translate3d(calc(var(--px, 0) * 4px), calc(var(--py, 0) * 4px), 0);
 }
-/* Wash cyan/violet di sekitar galaksi. Sengaja ditaruh di wrapper, BUKAN */
-/* di dalam .psa-bg-galaxy: filter di elemen itu berlaku ke seluruh isinya */
-/* termasuk gradient-nya, jadi kalau digabung, wash cyan-nya ikut kena     */
-/* sepia+hue-rotate dan warnanya jadi bukan cyan lagi. Wash ini juga tidak */
-/* ikut berputar — cuma galaksinya yang berputar.                          */
+/* Wash cyan/violet di sekitar galaksi. Sengaja di wrapper, BUKAN di      */
+/* dalam .psa-bg-galaxy: filter di elemen itu berlaku ke seluruh isinya   */
+/* termasuk gradient-nya, jadi kalau digabung, wash cyan-nya ikut kena    */
+/* sepia+hue-rotate dan warnanya jadi bukan cyan lagi.                    */
 .psa-bg-parallax-galaxy::after {
   content: "";
   position: absolute;
-  left: 76%;
-  top: 46%;
+  left: 72%;
+  top: 30%;
   width: 96vmax;
   height: 55vmax;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     ellipse at center,
-    rgba(44, 202, 238, 0.12) 0%,
-    rgba(90, 94, 220, 0.08) 22%,
-    rgba(113, 73, 180, 0.05) 38%,
+    rgba(44, 202, 238, 0.09) 0%,
+    rgba(90, 94, 220, 0.06) 22%,
+    rgba(113, 73, 180, 0.035) 38%,
     transparent 68%
   );
 }
 .psa-bg-parallax-far {
   z-index: 2;
+  transform: translate3d(calc(var(--px, 0) * 3px), calc(var(--py, 0) * 3px), 0);
+}
+.psa-bg-parallax-mid {
+  z-index: 3;
   transform: translate3d(calc(var(--px, 0) * 5px), calc(var(--py, 0) * 5px), 0);
 }
 .psa-bg-parallax-near {
-  z-index: 3;
-  transform: translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 12px), 0);
+  z-index: 4;
+  transform: translate3d(calc(var(--px, 0) * 8px), calc(var(--py, 0) * 8px), 0);
 }
 
 /* ---- 1. Galaksi spiral -------------------------------------------- */
-/* Pakai foto galaksi yang memang sudah ada di project (space-bg.jpg,   */
-/* NGC 1300) — bukan aset baru. Fotonya persegi panjang, jadi tepinya   */
-/* WAJIB di-mask jadi lingkaran; kalau tidak, sudut fotonya bakal       */
-/* kelihatan menyapu layar tiap kali berputar.                          */
-/*                                                                      */
-/* Warna asli galaksinya krem/oranye — di-hue-rotate ke biru-cyan biar  */
-/* nyambung sama palet situs, lalu ditimpa wash cyan/violet tipis.      */
-/* Pusatnya digeser sedikit ke kanan-atas, bukan pas di tengah, supaya  */
-/* tidak terasa seperti target bidik di belakang converter.             */
+/* Memakai foto yang memang sudah ada (space-bg.jpg, NGC 1300).           */
+/*                                                                        */
+/* Dua jebakan yang sudah pernah kejadian dan sengaja dicegah:            */
+/*  1. Elemen persegi + background-size:contain membuat tepi lurus foto   */
+/*     jatuh di area mask yang masih pekat, dan garis batasnya kelihatan  */
+/*     menyapu layar tiap kali berputar. Karena itu elemennya serasio     */
+/*     fotonya (~1.75) + cover, sehingga tidak ada tepi foto di dalamnya. */
+/*  2. hue-rotate sendirian tidak cukup untuk warna hangat yang pucat —   */
+/*     matriks hue-rotate CSS hanya menggesernya ke olive, bukan biru.    */
+/*     Jadi sepia() dulu untuk menyeragamkan hue, baru diputar ~180deg.   */
 .psa-bg-galaxy {
   position: absolute;
-  /* Inti galaksi di kanan-tengah, jelas di luar kartu converter — kalau  */
-  /* ditaruh di tengah, bagian paling terang persis jatuh di belakang     */
-  /* angka & input, dan kalkulatornya kalah fokus.                        */
-  left: 76%;
-  top: 46%;
-  /* Elemennya sengaja TIDAK persegi, mengikuti rasio fotonya (~1.75).    */
-  /* Kalau persegi + background-size:contain, tepi lurus fotonya jatuh di */
-  /* area mask yang masih pekat dan garis batasnya kelihatan menyapu layar */
-  /* tiap kali berputar. Dengan elemen serasio + `cover`, tidak ada tepi   */
-  /* foto di dalam elemen sama sekali — yang jadi batas cuma mask elips    */
-  /* yang sudah transparan penuh sebelum mencapai pinggir elemen.          */
+  /* Inti galaksi di kanan atas, jauh dari kartu converter di tengah —    */
+  /* bagian paling terang tidak boleh jatuh di belakang angka.            */
+  left: 72%;
+  top: 30%;
   width: 96vmax;
   height: 55vmax;
   transform: translate(-50%, -50%);
   transform-origin: center;
   background: url("/space-bg.jpg") center / cover no-repeat;
-  /* Fotonya aslinya krem/oranye. hue-rotate sendirian TIDAK cukup — buat */
-  /* warna hangat yang pucat, matriks hue-rotate CSS cuma menggesernya ke */
-  /* olive, bukan biru. Jadi: sepia() dulu untuk menyeragamkan semua      */
-  /* piksel ke satu hue hangat, baru diputar ~180 derajat jadi biru.      */
-  filter: sepia(0.9) hue-rotate(178deg) saturate(1.75) brightness(1.05) contrast(1.08);
-  opacity: 0.62;
-  /* Elips (bukan circle): di elemen non-persegi, `circle` memakai radius  */
-  /* farthest-corner sehingga sisi atas-bawah masih pekat saat mencapai    */
-  /* pinggir elemen — tepinya jadi kelihatan.                              */
-  /* Bagian pekatnya dibuat melebar (0.92 sampai 52%) supaya lengan        */
-  /* spiralnya benar-benar terbaca, bukan cuma inti terangnya.             */
+  /* Saturasi & terang diturunkan dari versi sebelumnya: galaksinya masih */
+  /* jelas terbaca sebagai spiral, tapi tidak lagi bersaing dengan kartu. */
+  filter: sepia(0.9) hue-rotate(178deg) saturate(1.35) brightness(0.92) contrast(1.06);
+  opacity: 0.46;
   mask-image: radial-gradient(ellipse, black 0%, rgba(0, 0, 0, 0.92) 52%, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse, black 0%, rgba(0, 0, 0, 0.92) 52%, transparent 80%);
-  animation: psa-galaxy-rotation 190s linear infinite;
+  animation: psa-galaxy-rotation 200s linear infinite;
   will-change: transform;
 }
 @keyframes psa-galaxy-rotation {
@@ -276,18 +269,19 @@ img {
   }
 }
 
-/* ---- 2 & 3. Starfield ---------------------------------------------- */
-/* Dua lapis bintang dengan kecepatan drift berbeda — itu yang bikin    */
-/* terasa dalam. Keduanya drift diagonal (bukan ikut berputar bareng    */
-/* galaksi: kalau semua berputar sepusat, langitnya terlihat seperti    */
-/* radar, bukan luar angkasa).                                          */
+/* ---- 2. Starfield: far / mid / near --------------------------------- */
+/* Tiga lapis dengan kecepatan drift berbeda — itu yang membuat langitnya */
+/* terasa punya kedalaman. Semuanya drift diagonal, BUKAN ikut berputar   */
+/* bersama galaksi: kalau semua berputar sepusat, langitnya terlihat      */
+/* seperti radar, bukan luar angkasa.                                     */
 .psa-stars {
   position: absolute;
   inset: -15%;
   will-change: transform;
 }
+/* Far: paling banyak, paling kecil, paling redup, paling lambat. */
 .psa-stars-far {
-  opacity: 0.32;
+  opacity: 0.26;
   background-repeat: repeat;
   background-size: 280px 240px;
   background-image: radial-gradient(circle at 8% 18%, #fff 0 1px, transparent 1.4px),
@@ -300,19 +294,41 @@ img {
     radial-gradient(circle at 84% 53%, #fff 0 0.6px, transparent 1.1px),
     radial-gradient(circle at 91% 82%, #fff 0 1px, transparent 1.4px),
     radial-gradient(circle at 3% 47%, #bdefff 0 0.7px, transparent 1.2px);
-  animation: psa-far-stars-drift 140s linear infinite;
+  animation: psa-far-stars-drift 160s linear infinite;
 }
 @keyframes psa-far-stars-drift {
   from {
     transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(-80px, 45px, 0);
+    transform: translate3d(-70px, 40px, 0);
   }
 }
-/* Near stars: lebih besar, lebih sedikit, dan drift ~1.5x lebih cepat. */
+/* Mid: ukuran & kecepatan di antara far dan near. */
+.psa-stars-mid {
+  opacity: 0.3;
+  background-repeat: repeat;
+  background-size: 350px 300px;
+  background-image: radial-gradient(circle at 16% 41%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 34% 12%, #cfeaff 0 0.9px, transparent 1.4px),
+    radial-gradient(circle at 47% 74%, #fff 0 1.1px, transparent 1.6px),
+    radial-gradient(circle at 69% 38%, #e6dcff 0 0.9px, transparent 1.4px),
+    radial-gradient(circle at 82% 88%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 95% 22%, #cfeaff 0 0.9px, transparent 1.4px),
+    radial-gradient(circle at 7% 90%, #fff 0 0.9px, transparent 1.4px);
+  animation: psa-mid-stars-drift 118s linear infinite;
+}
+@keyframes psa-mid-stars-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-100px, 55px, 0);
+  }
+}
+/* Near: paling sedikit, paling besar & terang, paling cepat. */
 .psa-stars-near {
-  opacity: 0.4;
+  opacity: 0.34;
   background-repeat: repeat;
   background-size: 420px 350px;
   background-image: radial-gradient(circle at 12% 24%, #eafaff 0 1.4px, transparent 2px),
@@ -320,7 +336,7 @@ img {
     radial-gradient(circle at 67% 17%, #fff 0 1.5px, transparent 2px),
     radial-gradient(circle at 86% 61%, #d9d0ff 0 1.2px, transparent 1.8px),
     radial-gradient(circle at 51% 46%, #fff 0 1.1px, transparent 1.7px);
-  animation: psa-near-stars-drift 90s linear infinite;
+  animation: psa-near-stars-drift 88s linear infinite;
 }
 @keyframes psa-near-stars-drift {
   from {
@@ -331,19 +347,18 @@ img {
   }
 }
 
-/* ---- 3b. Twinkle --------------------------------------------------- */
-/* Cuma 12 bintang yang kedap-kedip (lihat TWINKLE_STARS di             */
-/* Starfield.jsx), masing-masing beda durasi (3.4–6.4s) dan beda delay  */
-/* — jangan sampai berkedip serempak, itu langsung terlihat "dibuat".   */
+/* ---- 3. Twinkle ----------------------------------------------------- */
+/* Hanya 12 bintang yang berkedip, masing-masing beda durasi dan delay —  */
+/* jangan sampai serempak. Amplitudonya ditahan supaya lembut.            */
 .psa-twinkle {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   width: 2px;
   height: 2px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 0 7px rgba(188, 239, 255, 0.75);
-  opacity: 0.15;
+  box-shadow: 0 0 6px rgba(188, 239, 255, 0.6);
+  opacity: 0.12;
   animation-name: psa-star-twinkle;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
@@ -351,98 +366,119 @@ img {
 @keyframes psa-star-twinkle {
   0%,
   100% {
-    opacity: 0.15;
-    transform: scale(0.8);
+    opacity: 0.12;
+    transform: scale(0.85);
   }
   50% {
-    opacity: 0.75;
-    transform: scale(1.25);
+    opacity: 0.62;
+    transform: scale(1.18);
   }
 }
 
-/* ---- 4. Meteor ----------------------------------------------------- */
-/* Siklusnya panjang dan yang "kelihatan" cuma ~7% dari siklus (sekitar */
-/* 1.2 detik) — jadi lewatnya jarang, bukan hujan meteor. Dua elemen    */
-/* dengan periode 17s dan 23s+delay 7s supaya nyaris tidak pernah       */
-/* muncul barengan.                                                     */
+/* ---- 4. Meteor ------------------------------------------------------ */
+/* Durasi, delay, dan posisinya diacak per-load di Starfield.jsx (18-28   */
+/* detik). Yang benar-benar menyala hanya ~6% dari siklus (sekitar 1,2    */
+/* detik), jadi lewatnya jarang dan singkat — bukan hujan meteor.         */
 .psa-shooting-star {
   position: absolute;
-  z-index: 4;
-  width: 130px;
+  z-index: 5;
+  width: 120px;
   height: 1px;
   opacity: 0;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(197, 244, 255, 0.9), transparent);
-  filter: drop-shadow(0 0 4px rgba(68, 211, 238, 0.55));
+  background: linear-gradient(90deg, transparent, rgba(197, 244, 255, 0.85), transparent);
+  filter: drop-shadow(0 0 4px rgba(68, 211, 238, 0.45));
   transform: rotate(-28deg);
   will-change: transform, opacity;
-}
-.psa-shooting-star-one {
-  top: 18%;
-  left: 8%;
-  animation: psa-shooting-star-move 17s ease-out infinite;
-}
-.psa-shooting-star-two {
-  top: 42%;
-  left: 58%;
-  animation: psa-shooting-star-move 23s 7s ease-out infinite;
+  animation-name: psa-shooting-star-move;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
 }
 @keyframes psa-shooting-star-move {
   0%,
-  72%,
+  73%,
   100% {
     opacity: 0;
     transform: translate3d(0, 0, 0) rotate(-28deg);
   }
-  74% {
-    opacity: 0.75;
+  75% {
+    opacity: 0.7;
   }
   79% {
     opacity: 0;
-    transform: translate3d(460px, 230px, 0) rotate(-28deg);
+    transform: translate3d(440px, 220px, 0) rotate(-28deg);
   }
 }
 
-/* ---- 5. Scrim keterbacaan ------------------------------------------ */
-/* Makin gelap ke bawah, jadi area About/footer otomatis dapat overlay  */
-/* paling pekat tanpa perlu aturan terpisah per section.                */
+/* ---- 5. Lapisan gelap penjaga keterbacaan --------------------------- */
+/* Tiga lapisan terpisah, masing-masing satu tugas — digabung jadi satu   */
+/* gradient raksasa akan sangat sulit disetel ulang belakangan.           */
+
+/* 5a. Kiri pekat -> kanan tipis. Konten teks ada di tengah-kiri sedangkan */
+/*     galaksi di kanan atas; gradient ini memberi teks latar tenang tanpa */
+/*     harus meredupkan galaksinya.                                        */
 .psa-bg-scrim {
   position: absolute;
-  z-index: 5;
+  z-index: 6;
   inset: 0;
-  /* Bagian atas jauh lebih tipis dari resep awal (0.58) supaya lengan    */
-  /* spiral galaksinya benar-benar terbaca. Makin ke bawah makin pekat    */
-  /* karena di situ ada teks About & footer yang panjang — di area itu    */
-  /* keterbacaan menang atas pemandangan.                                 */
   background: linear-gradient(
-    180deg,
-    rgba(4, 7, 15, 0.2) 0%,
-    rgba(4, 7, 15, 0.34) 42%,
-    rgba(5, 8, 16, 0.62) 68%,
-    rgba(6, 8, 16, 0.88) 100%
+      100deg,
+      rgba(2, 6, 16, 0.96) 0%,
+      rgba(2, 6, 16, 0.82) 28%,
+      rgba(2, 6, 16, 0.58) 55%,
+      rgba(2, 6, 16, 0.32) 100%
+    ),
+    linear-gradient(180deg, rgba(2, 6, 16, 0) 0%, rgba(2, 6, 16, 0.18) 55%, rgba(3, 7, 17, 0.6) 100%);
+}
+
+/* 5b. Kubah gelap tepat di belakang kartu converter, supaya kartunya     */
+/*     duduk di atas area paling tenang di seluruh halaman.               */
+.psa-bg-shade {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 46%;
+  width: min(1250px, 105vw);
+  height: 900px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(2, 6, 16, 0.72) 0%,
+    rgba(2, 6, 16, 0.45) 42%,
+    rgba(2, 6, 16, 0.16) 68%,
+    transparent 82%
   );
 }
 
-/* ---- 6. Focal glow ------------------------------------------------- */
-/* Ditaruh di ATAS scrim supaya cyan-nya tidak ikut diredupkan. Tugasnya */
-/* cuma satu: menarik mata ke kartu converter. "Napas"-nya 12 detik dan  */
-/* sangat tipis (alpha efektif bergerak <0.02) — kalau dipercepat atau   */
-/* diperbesar, ini langsung berubah jadi lampu disko.                    */
+/* 5c. Vignette tepi viewport — merapikan pinggir layar dan menahan mata  */
+/*     tetap ke tengah.                                                   */
+.psa-bg-vignette {
+  position: absolute;
+  z-index: 8;
+  inset: -1px;
+  background: radial-gradient(
+    ellipse 120% 105% at 50% 45%,
+    transparent 42%,
+    rgba(2, 5, 13, 0.35) 76%,
+    rgba(2, 5, 13, 0.72) 100%
+  );
+}
+
+/* ---- 6. Focal glow -------------------------------------------------- */
+/* Di ATAS semua lapisan gelap supaya cyan-nya tidak ikut diredupkan.     */
+/* Napasnya 12 detik dan sangat tipis (alpha efektif bergerak <0.02).     */
 .psa-bg-focus {
   position: absolute;
-  z-index: 6;
+  z-index: 9;
   left: 50%;
-  /* Dinaikkan ke tepi atas kartu converter (bukan di tengah kartu) —      */
-  /* cahayanya jadi terbaca sebagai sumber cahaya di atas kalkulator,      */
-  /* bukan sekadar kabut di belakangnya.                                   */
   top: 38%;
   width: min(1000px, 92vw);
   height: 560px;
   transform: translate(-50%, -50%);
   background: radial-gradient(
     ellipse,
-    rgba(34, 211, 238, 0.16) 0%,
-    rgba(56, 189, 248, 0.06) 42%,
+    rgba(34, 211, 238, 0.13) 0%,
+    rgba(56, 189, 248, 0.05) 42%,
     transparent 72%
   );
   filter: blur(12px);
@@ -457,8 +493,8 @@ img {
   }
 }
 
-/* Tab disembunyikan (lihat visibilitychange di Starfield.jsx) — hentikan */
-/* semua loop animasi latar, nggak ada yang lihat jadi nggak perlu jalan. */
+/* Tab disembunyikan (visibilitychange di Starfield.jsx) — hentikan semua */
+/* loop animasi latar, tidak ada yang melihat jadi tidak perlu jalan.     */
 .psa-bg.is-paused .psa-bg-galaxy,
 .psa-bg.is-paused .psa-stars,
 .psa-bg.is-paused .psa-twinkle,
@@ -475,40 +511,40 @@ img {
   .psa-bg-focus {
     animation: none !important;
   }
-  /* Parallax wrapper-nya dinolkan; galaksinya sendiri TIDAK boleh kena  */
-  /* transform:none — itu akan membatalkan translate(-50%,-50%)-nya dan  */
-  /* menggeser galaksi keluar posisi.                                    */
+  /* Parallax wrapper-nya dinolkan; galaksinya sendiri TIDAK boleh kena   */
+  /* transform:none — itu membatalkan translate(-50%,-50%)-nya dan        */
+  /* menggeser galaksi keluar posisi.                                     */
   .psa-bg-parallax {
     transform: none !important;
   }
-  /* Galaksinya TIDAK dipindah ke tengah layar di sini. Resepnya memang    */
-  /* menyarankan itu, tapi alasannya karena resep aslinya memakai          */
-  /* `transform: none` yang otomatis membatalkan translate(-50%,-50%)      */
-  /* sehingga posisinya rusak. Di sini translate-nya dipertahankan, jadi   */
-  /* galaksi tetap utuh di komposisi aslinya (kanan atas). Memaksanya ke   */
-  /* tengah justru menaruh inti paling terang persis di belakang kartu     */
-  /* converter — kebalikan dari tujuan "kalkulator tetap jadi fokus".      */
   .psa-bg-galaxy {
     transform: translate(-50%, -50%) scale(1.04);
+  }
+  .psa-shooting-star {
+    display: none;
   }
 }
 
 @media (max-width: 767px) {
-  /* Mobile: hemat baterai/CPU — galaksi diperbesar (biar tepinya tetap   */
-  /* di luar layar sempit) tapi diredupkan & diperlambat, drift bintang   */
-  /* dimatikan, sebagian twinkle disembunyikan, meteor tinggal satu.      */
+  /* Mobile: sederhanakan latar dan hemat baterai — galaksi diperbesar    */
+  /* (supaya tepinya tetap di luar layar sempit) tapi diredupkan &        */
+  /* diperlambat, drift bintang dimatikan, lapisan bintang tengah dan     */
+  /* sebagian twinkle dilepas, meteor tinggal satu.                       */
   .psa-bg-galaxy {
     width: 165vmax;
     height: 94vmax;
-    opacity: 0.4;
+    opacity: 0.3;
     animation-duration: 220s;
   }
   .psa-stars-far {
-    opacity: 0.2;
+    opacity: 0.18;
     animation: none;
   }
+  .psa-stars-mid {
+    display: none;
+  }
   .psa-stars-near {
-    opacity: 0.25;
+    opacity: 0.22;
     animation: none;
   }
   .psa-twinkle:nth-of-type(n + 7) {
@@ -516,6 +552,10 @@ img {
   }
   .psa-shooting-star-two {
     display: none;
+  }
+  .psa-bg-shade {
+    width: 150vw;
+    height: 120vh;
   }
 }
 
@@ -936,9 +976,64 @@ img {
 /* (kalkulator, kartu favorit, paragraf Tentang) dibungkus .psa-narrow.  */
 .psa-stack {
   width: 100%;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+}
+/* Selubung gelap di belakang seluruh area data. z-index -1 menaruhnya    */
+/* di belakang kartu-kartu tapi TETAP di depan .psa-bg — .psa-content     */
+/* punya z-index sendiri sehingga membentuk stacking context, jadi nilai  */
+/* negatif di sini tidak akan menembusnya.                                */
+/*                                                                        */
+/* Sengaja tidak melebar ke kiri/kanan viewport: elemen absolut ikut      */
+/* menghitung overflow halaman, dan 100vw akan memicu scrollbar           */
+/* horizontal saat scrollbar vertikal muncul. Tepinya dilembutkan pakai   */
+/* mask supaya tidak ada garis batas yang kelihatan.                      */
+.psa-stack-veil {
+  position: absolute;
+  inset: -40px 0 -90px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 15%,
+    rgba(3, 7, 17, 0.3) 38%,
+    rgba(3, 7, 17, 0.48) 68%,
+    rgba(3, 7, 17, 0.55) 100%
+  );
+  mask-image: radial-gradient(ellipse 88% 100% at 50% 62%, #000 58%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 88% 100% at 50% 62%, #000 58%, transparent 100%);
+}
+
+/* Pemisah kalkulator -> area data: garis gradient setipis rambut dengan  */
+/* satu titik kecil di tengah. Cukup untuk menandai pergantian bagian,    */
+/* tidak cukup untuk menarik perhatian dari kalkulator.                   */
+.psa-data-divider {
+  position: relative;
+  height: 1px;
+  margin: var(--space-2) 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(148, 179, 214, 0.16) 22%,
+    rgba(34, 211, 238, 0.28) 50%,
+    rgba(148, 179, 214, 0.16) 78%,
+    transparent
+  );
+}
+.psa-data-divider::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.35);
 }
 .psa-narrow {
   width: 100%;
@@ -972,17 +1067,46 @@ img {
   /* lebarnya dari lebar-maksimum kontennya sendiri (termasu tombol       */
   /* width:100% di dalamnya), yang berujung meluber di layar sempit.      */
   width: 100%;
+  position: relative;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border);
+  /* Border biru gelap, BUKAN abu-abu netral — supaya tepinya menyatu    */
+  /* dengan langit di belakangnya alih-alih memotongnya.                 */
+  border: 1px solid rgba(38, 68, 116, 0.55);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  /* Bayangan besar tapi lembut + glow cyan sangat tipis. Glow-nya cuma  */
+  /* 0.08 alpha: cukup untuk memberi kesan kartu ini sumber fokus, jauh  */
+  /* dari kesan neon. inset putih tipis = highlight kaca di tepi atas.   */
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42), 0 0 40px rgba(34, 211, 238, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
   overflow: hidden;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+/* Garis cyan setipis rambut di tepi ATAS saja. Sengaja lewat ::before   */
+/* dan bukan border-top: border akan menyala di keempat sisi, dan itu    */
+/* langsung terlihat seperti kartu game, bukan aplikasi keuangan.        */
+.psa-converter-shell::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(34, 211, 238, 0.45) 30%,
+    rgba(125, 211, 252, 0.5) 50%,
+    rgba(34, 211, 238, 0.45) 70%,
+    transparent
+  );
+  pointer-events: none;
 }
 .psa-converter-shell:focus-within {
   border-color: rgba(34, 211, 238, 0.35);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42), 0 0 46px rgba(34, 211, 238, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 .psa-converter {
   padding: 28px 32px;
@@ -1073,7 +1197,9 @@ img {
 }
 .psa-qc-label {
   font-size: 13px;
-  color: var(--text-muted);
+  font-weight: 500;
+  /* Sejajar dengan .psa-field-label — ketiganya label utama kalkulator. */
+  color: #c3d2e6;
 }
 .psa-info-dot {
   display: inline-flex;
@@ -1144,14 +1270,21 @@ img {
   border-radius: var(--radius-md);
   padding: var(--space-4);
   background: rgba(8, 11, 20, 0.4);
-  transition: border-color 0.15s;
+  transition: border-color 0.18s, box-shadow 0.18s;
 }
+/* Border cyan lembut + halo tipis, BUKAN border cyan penuh: sebelumnya  */
+/* field aktif memakai --primary pekat sehingga bertumpuk dengan outline */
+/* fokus bawaan input di dalamnya dan terlihat seperti dua garis.        */
 .psa-field:focus-within {
-  border-color: var(--primary);
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
 }
+/* Label dinaikkan kontrasnya (dari --text-muted) — ini teks penuntun     */
+/* utama di kalkulator, bukan metadata sekunder.                          */
 .psa-field-label {
   font-size: 13px;
-  color: var(--text-muted);
+  font-weight: 500;
+  color: #c3d2e6;
   margin-bottom: var(--space-2);
 }
 .psa-field-top {
@@ -1263,13 +1396,15 @@ img {
 }
 @media (prefers-reduced-motion: no-preference) {
   .psa-result-pop {
-    animation: psa-result-pop 0.35s ease-out;
+    animation: psa-result-pop 0.38s cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
+/* Crossfade murni: naik 3px sambil memudar masuk. TIDAK memakai scale   */
+/* atau bounce — angka uang yang memantul terbaca main-main.             */
 @keyframes psa-result-pop {
   from {
-    opacity: 0.4;
-    transform: translateY(2px) scale(0.98);
+    opacity: 0;
+    transform: translateY(3px);
   }
   to {
     opacity: 1;
@@ -1279,6 +1414,8 @@ img {
 
 .psa-convert-btn {
   width: 100%;
+  position: relative;
+  overflow: hidden;
   margin-top: var(--space-4);
   height: 50px;
   border-radius: var(--radius-md);
@@ -1294,14 +1431,40 @@ img {
   gap: 8px;
   transition: filter 0.15s, transform 0.12s, box-shadow 0.15s;
 }
-.psa-convert-btn:hover:not(:disabled) {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(34, 211, 238, 0.22);
+/* Sheen: kilau miring tipis yang menyapu saat hover. Dipasang lewat    */
+/* ::after supaya tidak mengganggu isi tombol, dan pakai transform       */
+/* (bukan animasi background-position) agar tetap di GPU.                */
+.psa-convert-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: transform 0.55s ease, opacity 0.2s ease;
+  pointer-events: none;
 }
+.psa-convert-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(34, 211, 238, 0.24);
+}
+.psa-convert-btn:hover:not(:disabled)::after {
+  transform: translateX(100%);
+  opacity: 1;
+}
+/* Ditekan = kembali ke posisi awal (bukan turun melewatinya), supaya    */
+/* terasa seperti tombol yang benar-benar ditekan balik ke permukaan.    */
 .psa-convert-btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: translateY(0);
   filter: brightness(0.98);
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.18);
 }
 .psa-convert-btn:disabled {
   opacity: 0.75;
@@ -1440,6 +1603,25 @@ img {
   outline: none;
   border-color: var(--primary);
 }
+/* Dropdown token: muncul dengan fade + geser 4px, sangat singkat.       */
+/* Dipisah dari .psa-coin-list supaya daftar yang bisa di-scroll di       */
+/* dalamnya tidak ikut dianimasikan tiap kali difilter.                   */
+@keyframes psa-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .psa-coin-panel {
+    animation: psa-menu-in 0.14s ease-out;
+  }
+}
+
 .psa-coin-list {
   overflow-y: auto;
   padding: var(--space-2);
@@ -1937,9 +2119,12 @@ img {
     gap: 20px;
     align-items: stretch;
   }
+  /* Tinggi DAN radius dibuat identik: dua kartu bersebelahan dengan     */
+  /* sudut yang beda beberapa piksel langsung terasa tidak rapi.          */
   .psa-insight-row > * {
     min-width: 0;
     height: 300px;
+    border-radius: var(--radius-lg);
   }
 }
 .psa-insight-card {
@@ -2436,11 +2621,13 @@ img {
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-md);
-  animation: psa-help-bot-idle 3s ease-in-out infinite;
-  transition: transform 0.15s;
+  animation: psa-help-bot-idle 4s ease-in-out infinite;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 .psa-help-bot:hover {
-  transform: scale(1.05);
+  animation: none;
+  transform: translateY(-3.5px) scale(1.04);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), 0 0 26px rgba(34, 211, 238, 0.22);
 }
 .psa-help-bot img {
   width: 48px;
@@ -2448,13 +2635,16 @@ img {
   border-radius: 50%;
   object-fit: cover;
 }
+/* Floating naik-turun 3px, bukan scale: maskot yang mengembang-mengempis */
+/* menarik perhatian terus-menerus, sedangkan mengambang terbaca sebagai   */
+/* "diam tapi hidup" dan tidak bersaing dengan kalkulator.                 */
 @keyframes psa-help-bot-idle {
   0%,
   100% {
-    transform: scale(1);
+    transform: translateY(0);
   }
   50% {
-    transform: scale(1.04);
+    transform: translateY(-3.5px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2465,6 +2655,21 @@ img {
     transform: none;
   }
 }
+/* Tablet: di antara mobile dan desktop — badge diperkecil supaya tidak
+   menimpa kartu Pasangan Populer / chart yang lebarnya sudah menyempit. */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .psa-help-bot {
+    right: 18px;
+    bottom: 18px;
+    width: 54px;
+    height: 54px;
+  }
+  .psa-help-bot img {
+    width: 38px;
+    height: 38px;
+  }
+}
+
 .psa-help-panel {
   position: fixed;
   right: 20px;
@@ -2872,14 +3077,17 @@ img {
     width: auto;
   }
   .psa-help-bot {
-    right: 16px;
-    bottom: 16px;
-    width: 54px;
-    height: 54px;
+    right: 14px;
+    bottom: 14px;
+    /* Diperkecil lagi dari 54px: di layar sempit badge ini fixed di pojok
+       dan pasti bertumpuk dengan tombol Konversi / kartu chart yang ada di
+       bawah viewport. 44px masih memenuhi ukuran target sentuh minimum. */
+    width: 44px;
+    height: 44px;
   }
   .psa-help-bot img {
-    width: 38px;
-    height: 38px;
+    width: 31px;
+    height: 31px;
   }
   .psa-help-panel {
     right: 16px;
