@@ -86,6 +86,15 @@
   /* membuat GPU bekerja keras di area sebesar ini.                       */
   --glass-bg: rgba(7, 16, 34, 0.84);
   --glass-blur: 16px;
+
+  /* Empat tingkat kedalaman, dari paling belakang ke paling depan.
+     Aturannya: apa pun yang "masuk ke dalam" kartu (input, hasil, tabel,
+     chart) harus LEBIH GELAP dari kartunya, dan apa pun yang "keluar di
+     atas" kartu (dropdown, modal) harus lebih terang. Sebelumnya nilai
+     ini ditulis ulang sebagai rgba hardcoded di banyak tempat. */
+  --surface-inset: rgba(4, 9, 20, 0.55); /* input & panel di dalam kartu */
+  --surface-front: #0f1526; /* dropdown & modal, paling depan  */
+  --radius-input: 14px;
   --gradient-primary: linear-gradient(135deg, #22d3ee, #38bdf8);
 }
 
@@ -598,6 +607,9 @@ img {
 /* ============================================================ */
 /*  Header                                                        */
 /* ============================================================ */
+/* Dua kondisi. Yang dianimasikan hanya background, border, blur, dan
+   shadow — tinggi dan posisinya tidak ikut berubah, jadi tidak ada
+   layout shift saat kondisinya berganti. */
 .psa-header {
   position: sticky;
   top: 0;
@@ -605,10 +617,24 @@ img {
   height: var(--header-h);
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--border);
-  background: rgba(6, 8, 16, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid transparent;
+  background: rgba(6, 8, 16, 0.28);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease,
+    backdrop-filter 0.22s ease;
+}
+.psa-header.is-scrolled {
+  background: rgba(6, 8, 16, 0.82);
+  border-bottom-color: var(--border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.32);
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-header {
+    transition: none;
+  }
 }
 .psa-header-inner {
   width: 100%;
@@ -780,6 +806,16 @@ img {
   flex: 1;
   overflow: hidden;
   min-width: 0;
+  /* Fade di kedua ujung: tanpa ini item terpotong mendadak di tepi layar
+     dan titik sambung loop-nya jadi kelihatan. */
+  mask-image: linear-gradient(90deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 56px,
+    #000 calc(100% - 56px),
+    transparent
+  );
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
 }
@@ -787,7 +823,8 @@ img {
   display: inline-flex;
   width: max-content;
   padding: 9px 0;
-  animation: psa-ticker-scroll 110s linear infinite;
+  /* Diperlambat dari 110s: harga hanya berguna kalau sempat terbaca. */
+  animation: psa-ticker-scroll 150s linear infinite;
   font-variant-numeric: tabular-nums;
 }
 .psa-ticker:hover .psa-ticker-track,
@@ -842,8 +879,10 @@ img {
   font-weight: 600;
   color: var(--text);
 }
+/* Hanya persentase yang berwarna. Harga tetap abu terang supaya deretan
+   angkanya tidak berubah jadi pita hijau-merah yang ramai. */
 .psa-ticker-price {
-  color: var(--text-muted);
+  color: #b7c4d6;
 }
 .psa-ticker-change {
   display: inline-flex;
@@ -1023,6 +1062,15 @@ img {
     transparent
   );
 }
+/* Varian yang lebih tenang, dipakai di antara blok data (bukan di
+   perbatasan besar kalkulator -> data). */
+.psa-data-divider.is-soft {
+  margin: 0;
+  opacity: 0.5;
+}
+.psa-data-divider.is-soft::after {
+  display: none;
+}
 .psa-data-divider::after {
   content: "";
   position: absolute;
@@ -1080,7 +1128,12 @@ img {
   /* dari kesan neon. inset putih tipis = highlight kaca di tepi atas.   */
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42), 0 0 40px rgba(34, 211, 238, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  overflow: hidden;
+  /* overflow: visible, BUKAN hidden. Dengan hidden, dropdown token yang
+     terbuka di field bawah terpotong tepat di tepi kartu. Garis highlight
+     ::before di atas sudah di-inset dari tepi sehingga tidak butuh
+     clipping, dan isi kartu tidak punya latar sendiri yang bisa bocor
+     melewati sudut membulatnya. */
+  overflow: visible;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 /* Garis cyan setipis rambut di tepi ATAS saja. Sengaja lewat ::before   */
@@ -1245,31 +1298,37 @@ img {
 .psa-qc-input:focus {
   outline: none;
 }
+/* SECONDARY action. Sebelumnya tombol ini memakai gradient cyan penuh
+   yang sama persis dengan tombol Konversi, sehingga ada dua tombol yang
+   sama-sama terbaca sebagai aksi utama di satu kartu. Quick Command itu
+   jalan pintas opsional — Konversi yang harus menang secara visual. */
 .psa-qc-go {
   flex-shrink: 0;
   width: 120px;
   height: 40px;
   border-radius: var(--radius-sm);
-  border: none;
-  background: var(--gradient-primary);
-  color: #04222a;
-  font-weight: 700;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  color: #7fe6f7;
+  font-weight: 600;
   font-size: 13.5px;
   cursor: pointer;
-  transition: filter 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .psa-qc-go:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: rgba(34, 211, 238, 0.15);
+  border-color: rgba(34, 211, 238, 0.45);
+  color: #a6f0ff;
 }
 .psa-qc-go:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
   cursor: wait;
 }
 .psa-field {
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-input);
   padding: var(--space-4);
-  background: rgba(8, 11, 20, 0.4);
+  background: var(--surface-inset);
   transition: border-color 0.18s, box-shadow 0.18s;
 }
 /* Border cyan lembut + halo tipis, BUKAN border cyan penuh: sebelumnya  */
@@ -1328,8 +1387,14 @@ img {
   background: none;
   border: none;
   color: var(--text);
-  font-size: clamp(22px, 5vw, 28px);
+  /* Angka adalah isi terpenting di kartu ini, jadi ukurannya dinaikkan
+     agar jelas lebih besar dari label maupun tombol di sekitarnya. */
+  font-size: clamp(28px, 5vw, 34px);
   font-weight: 700;
+  /* tabular-nums: tiap digit selebar sama, jadi angka tidak bergoyang
+     kiri-kanan saat berubah selama count-up. */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   padding: 0;
 }
 .psa-amount-input::placeholder {
@@ -1389,10 +1454,25 @@ img {
   flex-wrap: wrap;
 }
 .psa-result-value {
-  font-size: clamp(26px, 6vw, 34px);
+  font-size: clamp(28px, 6vw, 36px);
   font-weight: 700;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   word-break: break-word;
+}
+/* Keadaan kosong ("—") sengaja lebih redup: itu placeholder, bukan nilai. */
+.psa-result-empty {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+/* Tingginya dipesan walau teksnya kosong, supaya kartu tidak berubah
+   tinggi saat hint hilang begitu hasil muncul. */
+.psa-result-hint {
+  min-height: 16px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-faint);
 }
 @media (prefers-reduced-motion: no-preference) {
   .psa-result-pop {
@@ -1417,13 +1497,14 @@ img {
   position: relative;
   overflow: hidden;
   margin-top: var(--space-4);
-  height: 50px;
+  min-height: 50px;
   border-radius: var(--radius-md);
   border: none;
   background: var(--gradient-primary);
   color: #04222a;
   font-size: 15px;
   font-weight: 700;
+  letter-spacing: 0.01em;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1466,10 +1547,18 @@ img {
   filter: brightness(0.98);
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.18);
 }
+/* Disabled TIDAK boleh punya glow: glow itu penanda "ini aksi utama yang
+   siap dipakai". Kalau tombol mati tetap menyala, penggunanya diundang
+   menekan sesuatu yang tidak akan merespons. */
 .psa-convert-btn:disabled {
-  opacity: 0.75;
-  cursor: wait;
+  opacity: 0.45;
+  cursor: not-allowed;
   transform: none;
+  box-shadow: none;
+  filter: grayscale(0.25);
+}
+.psa-convert-btn:disabled::after {
+  display: none;
 }
 .psa-spinner {
   width: 15px;
@@ -1529,10 +1618,22 @@ img {
   border-radius: var(--radius-pill);
   padding: 6px 12px 6px 6px;
   cursor: pointer;
-  min-height: 44px;
+  min-height: 46px;
+  /* Lebar minimum dipatok supaya pill tidak menyusut drastis saat simbol
+     tokennya pendek (BTC) lalu melebar lagi saat panjang (MATIC) — itu
+     membuat kolom di sebelahnya ikut bergeser tiap ganti token. */
+  min-width: 108px;
+  justify-content: flex-start;
+  transition: background 0.15s, border-color 0.15s;
 }
 .psa-coin-trigger:hover {
-  border-color: var(--border-strong);
+  background: var(--surface-3);
+  border-color: rgba(34, 211, 238, 0.3);
+}
+/* Open state: border cyan lembut (chevron-nya diputar oleh .is-open). */
+.psa-coin-trigger[aria-expanded="true"] {
+  border-color: rgba(34, 211, 238, 0.45);
+  background: var(--surface-3);
 }
 .psa-coin-icon {
   width: 26px;
@@ -1551,6 +1652,11 @@ img {
 .psa-coin-sym {
   font-weight: 700;
   font-size: 14px;
+  /* Simbol token rata kiri dengan lebar minimum: menjaga jarak logo -
+     simbol - chevron tetap sama di semua token. */
+  min-width: 38px;
+  text-align: left;
+  margin-right: auto;
 }
 .psa-coin-chevron {
   color: var(--text-faint);
@@ -1566,7 +1672,7 @@ img {
   right: 0;
   width: min(300px, 88vw);
   max-height: min(400px, 70vh);
-  background: #0c0e19;
+  background: var(--surface-front);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
@@ -1618,7 +1724,7 @@ img {
 }
 @media (prefers-reduced-motion: no-preference) {
   .psa-coin-panel {
-    animation: psa-menu-in 0.14s ease-out;
+    animation: psa-menu-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 
@@ -2094,6 +2200,67 @@ img {
   width: 26px;
   height: 26px;
 }
+/* Di layar sempit tabel enam kolom ini melebar sampai ~518px di dalam
+   kartu selebar ~308px, jadi isinya (Waktu, Status) hanya bisa dilihat
+   dengan menggeser ke samping di dalam kartu. Di bawah 640px tabelnya
+   digambar ulang sebagai daftar kartu: elemennya tetap <table> (semantik
+   dan pembacaan layar tidak berubah), hanya display-nya yang diganti. */
+@media (max-width: 640px) {
+  .psa-history-table-wrap {
+    overflow-x: visible;
+  }
+  .psa-history-table,
+  .psa-history-table tbody,
+  .psa-history-table tr,
+  .psa-history-table td {
+    display: block;
+    width: auto;
+  }
+  /* Header kolomnya diganti oleh label per sel di bawah, tapi tetap ada
+     di pohon aksesibilitas — disembunyikan lewat clip, bukan display:none. */
+  .psa-history-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .psa-history-table tbody tr {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-input);
+    background: var(--surface-inset);
+  }
+  .psa-history-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+  .psa-history-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    border: none;
+    text-align: right;
+  }
+  .psa-history-table td::before {
+    content: attr(data-label);
+    color: var(--text-faint);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .psa-history-table td .psa-history-coin {
+    justify-content: flex-end;
+  }
+  .psa-history-table td .psa-history-status-row {
+    justify-content: flex-end;
+  }
+}
+
 .psa-history-empty {
   text-align: center;
   color: var(--text-faint);
@@ -2170,16 +2337,23 @@ img {
   gap: 2px;
   flex-shrink: 0;
 }
+/* Tinggi & radius dipatok sama dengan tombol periode di bawahnya —
+   sebelumnya keduanya beda beberapa piksel dan barisnya terlihat goyah. */
 .psa-chart-toggle-btn {
   border: none;
   background: none;
-  color: var(--text-muted);
+  color: #a9b8cc;
   font-size: 12px;
   font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 6px;
+  padding: 0 12px;
+  border-radius: 7px;
   cursor: pointer;
-  min-height: 26px;
+  min-height: 28px;
+  transition: background 0.15s, color 0.15s;
+}
+.psa-chart-toggle-btn:hover:not(.is-active):not(.is-disabled) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
 }
 .psa-chart-toggle-btn.is-active {
   background: var(--primary);
@@ -2304,6 +2478,27 @@ img {
 @media (prefers-reduced-motion: reduce) {
   .psa-chart-dim {
     transition: none;
+  }
+}
+
+/* Skeleton serbaguna. Ukurannya harus dipatok oleh pemakainya sehingga
+   sama dengan konten aslinya — kalau tidak, justru skeleton-nya sendiri
+   yang menyebabkan layout shift saat data masuk. */
+.psa-skeleton {
+  display: inline-block;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--panel-hover) 25%, var(--surface-3) 37%, var(--panel-hover) 63%);
+  background-size: 400% 100%;
+  animation: psa-shimmer 1.4s ease infinite;
+  vertical-align: middle;
+}
+.psa-skeleton-price {
+  width: 74px;
+  height: 11px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-skeleton {
+    animation: none;
   }
 }
 

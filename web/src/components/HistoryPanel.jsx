@@ -67,24 +67,26 @@ export default function HistoryPanel({ history, onReuse, onClear, icons }) {
                 const toMeta = COINS[h.to];
                 return (
                   <tr key={id} onClick={() => onReuse(h)} title="Pakai lagi pasangan ini">
-                    <td>
+                    <td data-label="Dari">
                       <span className="psa-history-coin">
                         <CoinIcon sym={h.from} size={20} iconUrl={fromMeta ? icons?.[fromMeta.id] : undefined} />
                         {h.from.toUpperCase()}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Ke">
                       <span className="psa-history-coin">
                         <CoinIcon sym={h.to} size={20} iconUrl={toMeta ? icons?.[toMeta.id] : undefined} />
                         {h.to.toUpperCase()}
                       </span>
                     </td>
-                    <td>{formatAmount(h.amount, h.from)}</td>
-                    <td>
+                    <td data-label="Jumlah">{formatAmount(h.amount, h.from)}</td>
+                    <td data-label="Hasil">
                       {formatAmount(h.value, h.to)} {h.to.toUpperCase()}
                     </td>
-                    <td className="psa-history-time">{relativeTime(h.at)}</td>
-                    <td>
+                    <td className="psa-history-time" data-label="Waktu">
+                      {relativeTime(h.at)}
+                    </td>
+                    <td data-label="Status">
                       <span className="psa-history-status-row">
                         <span className="psa-history-status">Selesai</span>
                         <button

@@ -36,8 +36,10 @@ function setup(overrides = {}) {
     isFavorite: false,
     ...overrides,
   };
-  render(<Converter {...props} />);
-  return props;
+  const utils = render(<Converter {...props} />);
+  // Util RTL ikut dikembalikan supaya tes bisa unmount saat perlu
+  // merender ulang beberapa kali dalam satu tes.
+  return { ...props, ...utils };
 }
 
 describe("Converter", () => {
@@ -89,9 +91,29 @@ describe("Converter", () => {
   });
 
   it("menonaktifkan tombol saat status loading dan menampilkan teks memuat", () => {
-    setup({ status: "loading" });
-    const tombol = screen.getByRole("button", { name: /Mengambil harga/i });
+    setup({ status: "loading", amount: "5" });
+    const tombol = screen.getByRole("button", { name: /Menghitung/i });
     expect(tombol).toBeDisabled();
+  });
+
+  it("menonaktifkan tombol Konversi selama jumlahnya belum valid", () => {
+    // Empty state: satu-satunya CTA utama tidak boleh bisa ditekan sebelum
+    // ada jumlah yang masuk akal untuk dihitung. Tiap kasus dirender ulang
+    // dari nol lalu di-unmount, karena render berturut-turut di satu tes
+    // akan menumpuk DOM (cleanup RTL baru jalan setelah tesnya selesai).
+    for (const [nilai, harusMati] of [
+      ["", true],
+      ["0", true],
+      ["-5", true],
+      ["abc", true],
+      ["2.5", false],
+    ]) {
+      const { unmount } = setup({ amount: nilai });
+      const cta = screen.getByRole("button", { name: /^Konversi$/ });
+      if (harusMati) expect(cta).toBeDisabled();
+      else expect(cta).toBeEnabled();
+      unmount();
+    }
   });
 
   it("menampilkan pesan error jumlah dengan role alert", () => {

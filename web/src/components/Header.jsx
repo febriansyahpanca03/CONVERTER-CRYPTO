@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IconSwapVertical, IconMenu, IconClose } from "./Icons.jsx";
 
 const LINKS = [
@@ -13,9 +13,22 @@ const LINKS = [
 /* Wallet").                                                            */
 export default function Header() {
   const [open, setOpen] = useState(false);
+  /* Header punya dua kondisi: nyaris transparan saat halaman di paling
+     atas, lalu gelap + blur setelah discroll. Ambangnya 8px supaya tidak
+     berganti-ganti saat halaman cuma bergetar sedikit. */
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    // passive: listener ini tidak pernah memanggil preventDefault, jadi
+    // browser boleh menggulir tanpa menunggunya.
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll(); // kondisi awal, mis. saat halaman dibuka dalam keadaan ter-scroll
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="psa-header">
+    <header className={`psa-header ${scrolled ? "is-scrolled" : ""}`}>
       <div className="psa-header-inner">
         <a href="#converter" className="psa-logo" aria-label="Panca Swap, ke bagian converter">
           <span className="psa-logo-mark" aria-hidden="true">

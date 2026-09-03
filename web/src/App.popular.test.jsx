@@ -83,12 +83,18 @@ describe("PopularPairs", () => {
     expect(onSelect).toHaveBeenCalledWith("btc", "idr");
   });
 
-  it("menampilkan em dash, bukan crash, kalau harga belum sempat dimuat", async () => {
+  it("menampilkan skeleton, bukan crash, kalau harga belum sempat dimuat", async () => {
     fetchPricesFor.mockRejectedValue(new Error("jaringan mati"));
     render(<PopularPairs icons={{}} onSelect={() => {}} />);
 
     const btcIdr = await screen.findByText("BTC/IDR");
     const harga = btcIdr.parentElement.querySelector(".psa-popular-price");
-    expect(harga.textContent).toBe("—");
+    // Harga yang belum sampai ditandai skeleton, bukan "—": em dash
+    // terbaca sebagai "tidak ada nilainya", padahal ini keadaan sementara.
+    const skeleton = harga.querySelector(".psa-skeleton");
+    expect(skeleton).toBeInTheDocument();
+    expect(skeleton).toHaveAttribute("aria-label", "Memuat harga");
+    // Tidak boleh ada angka yang bocor sebagai nilai palsu.
+    expect(harga.textContent).not.toMatch(/\d/);
   });
 });

@@ -391,6 +391,8 @@ export default function App() {
 
               <PopularPairs icons={icons} onSelect={(f, t) => convert({ from: f, to: t, amount: amount || "1" })} />
 
+              <div className="psa-data-divider is-soft" aria-hidden="true" />
+
               <div className="psa-insight-row">
                 <HistoryPanel
                   history={history}
@@ -406,6 +408,8 @@ export default function App() {
                   <PriceInsightCard fromSym={fromSym} toSym={toSym} icons={icons} />
                 </ErrorBoundary>
               </div>
+
+              <div className="psa-data-divider is-soft" aria-hidden="true" />
 
               <WhyPancaSwap />
 
@@ -515,7 +519,16 @@ export function PopularPairs({ icons, onSelect }) {
                     {p.from.toUpperCase()}/{p.to.toUpperCase()}
                   </span>
                   <span className="psa-popular-price">
-                    {value != null ? displayAmount(value, quoteSym) : "—"}
+                    {/* Skeleton, bukan "—": harga yang belum sampai itu
+                        keadaan sementara, sedangkan "—" terbaca sebagai
+                        "tidak ada nilainya". Lebarnya dipatok lewat CSS
+                        supaya kartunya tidak berubah ukuran saat angka
+                        aslinya masuk. */}
+                    {value != null ? (
+                      displayAmount(value, quoteSym)
+                    ) : (
+                      <span className="psa-skeleton psa-skeleton-price" aria-label="Memuat harga" />
+                    )}
                     {typeof change === "number" && (
                       <span className={up ? "psa-ticker-up" : "psa-ticker-down"}>
                         {" "}

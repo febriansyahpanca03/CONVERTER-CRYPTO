@@ -99,6 +99,19 @@ export default function Converter({
 }) {
   const loading = status === "loading";
   const showResult = status === "done" && result;
+  /* Sumber kebenaran tunggal untuk "boleh dikonversi atau belum".
+     Dipakai bersama oleh tombol Konversi (disabled) dan tampilan hasil
+     (placeholder), supaya keduanya tidak pernah saling bertentangan —
+     mis. tombol aktif padahal isinya bukan angka.
+     Validasinya sengaja dibuat longgar (hanya cek dapat-dihitung dan > 0)
+     dan TIDAK menggantikan validasi asli di App.convert(), yang tetap
+     jadi penentu akhir beserta pesan errornya. */
+  const jumlahValid = (() => {
+    const t = String(amount).trim();
+    if (!t) return false;
+    const nilai = Number(t.replace(",", "."));
+    return Number.isFinite(nilai) && nilai > 0;
+  })();
   const amountRef = useRef(null);
   const angkaRef = useRef(null);
   const resultDisplay = showResult ? formatAmountSafe(result.value, toSym) : null;
@@ -222,7 +235,7 @@ export default function Converter({
             className="psa-amount-input"
             type="text"
             inputMode="decimal"
-            placeholder="0"
+            placeholder="0.00"
             value={amount}
             onChange={(e) => onAmountChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onConvert()}
@@ -245,7 +258,7 @@ export default function Converter({
           disabled={loading}
           title="Tukar arah aset"
           aria-label="Tukar arah aset asal dan tujuan"
-          style={{ transform: `rotate(${swapTurns * 180}deg)` }}
+          style={{ transform: `rotate(${swapTurns * 180}deg)`, transitionDuration: "280ms" }}
         >
           <IconSwapVertical size={18} />
         </button>
@@ -274,8 +287,15 @@ export default function Converter({
           >
             {/* Angka yang dianimasikan di-aria-hidden: tanpa ini pembaca   */}
             {/* layar akan membacakan setiap frame count-up-nya.            */}
-            <span ref={angkaRef} aria-hidden="true">
-              {loading ? "…" : resultDisplay ? resultDisplay.text : "0"}
+            {/* Placeholder "—", bukan "0": angka nol itu hasil konversi   */}
+            {/* yang sah, jadi menampilkannya sebelum pengguna mengisi apa   */}
+            {/* pun membuat keadaan kosong tidak bisa dibedakan dari hasil.  */}
+            <span
+              ref={angkaRef}
+              aria-hidden="true"
+              className={showResult ? "" : "psa-result-empty"}
+            >
+              {loading ? "0.00" : resultDisplay ? resultDisplay.text : "—"}
             </span>
             {/* Nilai final, diumumkan sekali saja. */}
             <span className="visually-hidden">
@@ -283,6 +303,11 @@ export default function Converter({
             </span>
           </span>
           <CoinSelect value={toSym} onChange={onToChange} icons={icons} label="Aset tujuan" />
+        </div>
+        {/* Tingginya dipesan lewat CSS (min-height) supaya baris ini tidak  */}
+        {/* mendorong layout saat berganti antara hint dan kosong.          */}
+        <div className="psa-result-hint">
+          {!showResult && !loading && "Masukkan jumlah untuk melihat hasil"}
         </div>
       </div>
 
@@ -313,10 +338,20 @@ export default function Converter({
         </div>
       )}
 
-      <button className="psa-convert-btn" onClick={onConvert} disabled={loading}>
+      <button
+        className="psa-convert-btn"
+        onClick={onConvert}
+        disabled={loading || !jumlahValid}
+        aria-describedby={!jumlahValid && !loading ? "psa-cta-alasan" : undefined}
+      >
         {loading && <span className="psa-spinner" aria-hidden="true" />}
-        {loading ? "Mengambil harga…" : "Konversi"}
+        {loading ? "Menghitung…" : "Konversi"}
       </button>
+      {/* Alasan tombol mati, khusus pembaca layar — secara visual sudah   */}
+      {/* dijelaskan oleh hint di bawah kolom hasil.                       */}
+      <span id="psa-cta-alasan" className="visually-hidden">
+        Isi jumlah lebih dari nol untuk mengaktifkan tombol konversi
+      </span>
     </div>
   );
 }
