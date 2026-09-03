@@ -1,4 +1,30 @@
 /* ============================================================ */
+/*  Font brand — dipakai SANGAT terbatas, cuma nama brand di       */
+/*  header (.psa-logo-name) dan judul hero (.psa-h1). Semua teks    */
+/*  UI lain (nav, tombol, input, angka, chart, riwayat, About,      */
+/*  footer) tetap pakai font sans-serif utama — lihat body di       */
+/*  bawah. Self-hosted (bukan link Google Fonts) supaya tidak ada   */
+/*  request eksternal dan tetap jalan setelah deploy Vercel.        */
+/*                                                                  */
+/*  Catatan lisensi: font display "Space Quest" yang tadinya        */
+/*  diminta ternyata freeware HANYA untuk personal use (lihat       */
+/*  misc/license.txt di ZIP-nya) — commercial use butuh beli        */
+/*  lisensi. Situs ini publik/branded, jadi kemungkinan besar        */
+/*  terhitung commercial use. Atas persetujuan pengguna, dipakai    */
+/*  Orbitron (SIL Open Font License 1.1, google/fonts) sebagai      */
+/*  gantinya — sama-sama kesan futuristik/space, bebas dipakai      */
+/*  komersial & di-embed di web.                                    */
+/* ============================================================ */
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/orbitron/Orbitron-Variable.ttf") format("truetype-variations"),
+    url("/fonts/orbitron/Orbitron-Variable.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================ */
 /*  Design tokens                                                 */
 /* ============================================================ */
 :root {
@@ -470,7 +496,10 @@ img {
 .psa-logo {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  /* Sedikit lebih lebar dari --space-2 (8px) supaya nama brand yang      */
+  /* sekarang pakai Orbitron (huruf lebih lebar) tidak terasa mepet ke    */
+  /* mark heksagon. */
+  gap: 11px;
   text-decoration: none;
   flex-shrink: 0;
 }
@@ -488,11 +517,22 @@ img {
   font-size: 16px;
   flex-shrink: 0;
 }
+/* Font brand (Orbitron) cuma di sini — bukan `header *`, biar nav/     */
+/* Live Market di sebelahnya tetap pakai font UI biasa.                 */
 .psa-logo-name {
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: 0.02em;
+  font-family: "Orbitron", "Arial Black", sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.055em;
   text-transform: uppercase;
+  color: var(--text);
+}
+@media (max-width: 640px) {
+  .psa-logo-name {
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
 }
 .psa-nav {
   display: flex;
@@ -726,13 +766,35 @@ img {
   padding: 48px 0 30px;
   text-align: center;
 }
+/* Font brand (Orbitron) cuma di judul hero ini — .psa-subtitle di        */
+/* bawahnya tetap font UI biasa. Gradient teks sangat halus (bukan neon), */
+/* fallback ke --text solid dulu buat browser yang belum load font/belum  */
+/* dukung background-clip:text, supaya tidak ada momen teks tak terbaca.  */
 .psa-h1 {
-  font-size: clamp(30px, 2.8vw, 42px);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
+  font-family: "Orbitron", "Arial Black", sans-serif;
+  font-size: clamp(38px, 4.5vw, 48px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  text-wrap: balance;
   margin: 0;
-  color: var(--text);
+  color: #f5f8fd;
+}
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .psa-h1 {
+    background: linear-gradient(90deg, #f7fbff 0%, #a7efff 58%, #c9bdff 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+@media (max-width: 640px) {
+  .psa-h1 {
+    font-size: clamp(27px, 8vw, 34px);
+    letter-spacing: 0.035em;
+    line-height: 1.12;
+  }
 }
 .psa-subtitle {
   margin-top: 16px;
