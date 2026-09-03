@@ -34,11 +34,24 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Ringkasan kegagalan sengaja diangkat jadi annotation supaya alasan
+      # gagalnya kelihatan langsung di daftar checks, tanpa harus membuka
+      # log mentah (yang butuh hak admin repo untuk diunduh lewat API).
       - name: Test
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/test.log || {
+            echo "::error title=Tes frontend gagal::$(tail -c 900 /tmp/test.log | tr '\n' ' | ')"
+            exit 1
+          }
 
       - name: Build
-        run: npm run build
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee /tmp/build.log || {
+            echo "::error title=Build frontend gagal::$(tail -c 900 /tmp/build.log | tr '\n' ' | ')"
+            exit 1
+          }
 
   server:
     name: Backend — test
