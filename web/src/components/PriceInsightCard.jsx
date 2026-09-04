@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import CoinIcon from "./CoinIcon.jsx";
 import { IconInfo, IconMaximize } from "./Icons.jsx";
+import Tooltip from "./Tooltip.jsx";
 import ChartTypeToggle from "./chart/ChartTypeToggle.jsx";
 import TimeframeSelector from "./chart/TimeframeSelector.jsx";
 import ChartLoadingState from "./chart/ChartLoadingState.jsx";
@@ -29,7 +30,7 @@ import {
   computeCandleStats,
   chartDataStatus,
 } from "../lib/chart.js";
-import { displayAmount, relativeTime } from "../lib/format.js";
+import { displayAmount, relativeTime, formatPercent } from "../lib/format.js";
 import { loadChartPrefs, saveChartPrefs } from "../lib/storage.js";
 
 // Kartu ringkas ini tingginya dipatok ~300px total (biar sejajar sama
@@ -151,15 +152,20 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
             hanya ditambah ikon perbesar supaya jelas ini membuka tampilan
             besar. Modalnya sudah punya Escape, focus trap, dan pengembalian
             fokus ke tombol ini — lihat ChartDetailModal.jsx. */}
-        <button
-          ref={detailBtnRef}
-          className="psa-insight-detail-btn"
-          onClick={() => setModalOpen(true)}
-          aria-label="Perbesar grafik harga"
-        >
-          <IconMaximize size={13} />
-          Perbesar
-        </button>
+        <Tooltip label="Buka grafik dalam tampilan penuh">
+          {(ttId) => (
+            <button
+              ref={detailBtnRef}
+              className="psa-insight-detail-btn"
+              onClick={() => setModalOpen(true)}
+              aria-label="Perbesar grafik harga"
+              aria-describedby={ttId}
+            >
+              <IconMaximize size={13} />
+              Perbesar
+            </button>
+          )}
+        </Tooltip>
       </div>
 
       {/* Baris 2: pasangan + harga, toggle Garis|Candle */}
@@ -197,7 +203,7 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
         {stats ? (
           <span className={`psa-insight-change ${stats.changeAbs >= 0 ? "psa-ticker-up" : "psa-ticker-down"}`}>
             {stats.changeAbs >= 0 ? "+" : "−"}
-            {Math.abs(stats.changePct).toFixed(2)}% dalam {PERIOD_LABEL[period].toLowerCase()}
+            {formatPercent(stats.changePct)} dalam {PERIOD_LABEL[period].toLowerCase()}
           </span>
         ) : (
           <span className="psa-insight-change" />

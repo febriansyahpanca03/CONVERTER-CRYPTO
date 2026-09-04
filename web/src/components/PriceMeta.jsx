@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { formatAmount, relativeTime, priceStatus } from "../lib/format.js";
-import { IconRefresh } from "./Icons.jsx";
+import { formatAmount, relativeTime, formatClock, formatPercent, priceStatus } from "../lib/format.js";
+import { IconRefresh, IconAlertTriangle } from "./Icons.jsx";
+import Tooltip from "./Tooltip.jsx";
 
 /* Kata-katanya sengaja menjelaskan KESEGARAN datanya, bukan istilah
    teknis: pengguna tidak perlu tahu arti "stale", tapi perlu tahu bahwa
@@ -61,14 +62,18 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
   if (status === "error") {
     const badgeClass = offline ? "psa-status-offline" : "psa-status-error";
     const badgeText = offline ? STATUS_LABEL.offline : STATUS_LABEL.error;
+    // Judul pendek dari spec; deskripsinya pesan ASLI dari error kalau ada
+    // (lebih jujur ke pengguna daripada teks generik), fallback ke teks
+    // generik cuma kalau memang tidak ada pesan sama sekali.
+    const deskripsi = message || "Data pasar sedang tidak dapat dimuat.";
     if (inline) {
       return (
         <div className="psa-market-bar psa-market-bar-error" role="alert">
-          <span className={`psa-status-badge ${badgeClass}`}>
-            <span className="psa-status-dot" aria-hidden="true" />
-            {badgeText}
-          </span>
-          <span>{message || "Data pasar belum tersedia"}</span>
+          <IconAlertTriangle size={16} className="psa-market-error-icon" aria-hidden="true" />
+          <div className="psa-market-error-text">
+            <strong>Harga belum tersedia</strong>
+            <span>{deskripsi}</span>
+          </div>
           <button className="psa-icon-btn" onClick={onRefresh} title="Coba lagi" aria-label="Coba ambil harga lagi">
             <IconRefresh size={15} />
           </button>
@@ -87,7 +92,7 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
           </button>
         </div>
         <p className="psa-meta-disclaimer" role="alert">
-          {message}
+          <IconAlertTriangle size={13} className="psa-market-error-icon" aria-hidden="true" /> {deskripsi}
         </p>
       </div>
     );
@@ -109,19 +114,26 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
           <div className="psa-market-bar-main">
             <span className="psa-market-pair">
               {fromSym.toUpperCase()} / {toSym.toUpperCase()}
+              {/* Penanda tenang bahwa ini kurs referensi pasar, bukan kurs
+                  transaksi sungguhan — situs ini murni kalkulator. */}
+              <span className="psa-market-pair-tag"> · Market Reference</span>
             </span>
             {perubahan !== null && (
               /* Panah ▲/▼ selalu ikut: warna saja tidak cukup untuk
                  pengguna dengan buta warna. */
               <span className={`psa-market-change ${naik ? "psa-ticker-up" : "psa-ticker-down"}`}>
-                {naik ? "▲" : "▼"} {Math.abs(perubahan).toFixed(2)}%
+                {naik ? "▲" : "▼"} {formatPercent(perubahan)}
                 <span className="psa-market-period">(24J)</span>
               </span>
             )}
-            <span className={`psa-status-badge ${badgeClass}`}>
-              <span className="psa-status-dot" aria-hidden="true" />
-              {STATUS_LABEL[dataStatus] || STATUS_LABEL.live}
-            </span>
+            <Tooltip label={`Status: ${STATUS_LABEL[dataStatus] || STATUS_LABEL.live}, sumber CoinGecko`}>
+              {(ttId) => (
+                <span className={`psa-status-badge ${badgeClass}`} tabIndex={0} aria-describedby={ttId}>
+                  <span className="psa-status-dot" aria-hidden="true" />
+                  {STATUS_LABEL[dataStatus] || STATUS_LABEL.live}
+                </span>
+              )}
+            </Tooltip>
           </div>
           <div className="psa-market-bar-sub">
             <span className="psa-market-rate">
@@ -133,7 +145,13 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
                 converter (694px) dan barnya jadi tiga baris setinggi 87px.
                 Waktu relatif tepat di sebelah badge status sudah terbaca
                 sebagai waktu pembaruan. */}
-            <span className="psa-market-time">{relativeTime(result.updatedAt)}</span>
+            <Tooltip label={`Pukul ${formatClock(result.updatedAt)}`}>
+              {(ttId) => (
+                <span className="psa-market-time" tabIndex={0} aria-describedby={ttId}>
+                  {relativeTime(result.updatedAt)}
+                </span>
+              )}
+            </Tooltip>
             <span className="psa-market-source">CoinGecko</span>
             <button
               className="psa-icon-btn psa-meta-refresh"

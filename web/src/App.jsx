@@ -20,7 +20,7 @@ import {
   fetchPricesFor,
   fetchSparklines,
 } from "./lib/api.js";
-import { formatAmountSafe, displayAmount } from "./lib/format.js";
+import { formatAmountSafe, displayAmount, formatPercent } from "./lib/format.js";
 import {
   loadHistory,
   saveHistory,
@@ -80,6 +80,11 @@ export default function App() {
 
   const [query, setQuery] = useState("");
   const [icons, setIcons] = useState({});
+  /* Harga dasar (bukan kurs konversi) + sparkline 24 jam untuk SEMUA aset
+     — sumber tunggal yang dipakai Popular Pairs dan token picker, supaya
+     keduanya tidak sama-sama menembak endpoint yang identik. */
+  const [assetPrices, setAssetPrices] = useState(null);
+  const [assetSparks, setAssetSparks] = useState({});
   const [history, setHistory] = useState(() => loadHistory());
   const [favorites, setFavorites] = useState(() => loadFavorites());
   const [toasts, setToasts] = useState([]);
@@ -95,6 +100,25 @@ export default function App() {
 
   useReveal();
 
+  /* Status koneksi browser sungguhan (navigator.onLine + event
+     online/offline) — beda dari `offline` yang sudah ada, yang cuma
+     nyala setelah SATU permintaan harga gagal karena "Failed to fetch".
+     Bar ini reaktif terhadap kondisi jaringan itu sendiri, bukan hasil
+     satu percobaan konversi. */
+  const [browserOffline, setBrowserOffline] = useState(
+    () => typeof navigator !== "undefined" && navigator.onLine === false
+  );
+  useEffect(() => {
+    const jadiOffline = () => setBrowserOffline(true);
+    const jadiOnline = () => setBrowserOffline(false);
+    window.addEventListener("offline", jadiOffline);
+    window.addEventListener("online", jadiOnline);
+    return () => {
+      window.removeEventListener("offline", jadiOffline);
+      window.removeEventListener("online", jadiOnline);
+    };
+  }, []);
+
   /* Ikon token asli, diambil sekali untuk seluruh daftar aset. */
   useEffect(() => {
     const ids = Object.values(COINS)
@@ -103,6 +127,27 @@ export default function App() {
     fetchIcons(ids)
       .then(setIcons)
       .catch(() => {});
+  }, []);
+
+  /* Harga + sparkline seluruh aset — sekali di sini, dipakai ulang oleh
+     Popular Pairs dan token picker (bukan diambil dua kali untuk data
+     yang sama). Gagal diam-diam: kedua konsumennya tetap berfungsi penuh
+     tanpa data ini, cukup tidak menampilkan harga/grafik mini. */
+  useEffect(() => {
+    let alive = true;
+    fetchPricesFor(Object.keys(COINS), "usd,idr")
+      .then((d) => alive && setAssetPrices(d))
+      .catch(() => {});
+    fetchSparklines(
+      Object.values(COINS)
+        .map((c) => c.id)
+        .join(",")
+    )
+      .then((d) => alive && setAssetSparks(d))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, []);
 
   /* Urutan prioritas pasangan awal: parameter URL (buat hasil yang       */
@@ -409,6 +454,15 @@ export default function App() {
           Langsung ke kalkulator
         </a>
         <Header />
+        {/* Bar tipis, cuma tampil saat browser SUNGGUH offline (event
+            online/offline asli) — bukan tebakan dari satu request gagal.
+            Data terakhir yang berhasil dimuat tetap terlihat di kalkulator
+            karena state-nya tidak pernah dikosongkan saat koneksi putus. */}
+        {browserOffline && (
+          <div className="psa-offline-bar" role="status">
+            Kamu sedang offline. Menampilkan data terakhir yang tersedia.
+          </div>
+        )}
         <MarketTicker onSelect={onTickerSelect} />
 
         <main className="psa-main">
@@ -443,6 +497,7 @@ export default function App() {
                     onToChange={setToSym}
                     onSwap={swapDirection}
                     onConvert={() => convert()}
+                    assetPrices={assetPrices}
                     status={status}
                     result={result}
                     amountError={amountError}
@@ -489,7 +544,12 @@ export default function App() {
               <div className="psa-data-divider" aria-hidden="true" />
 
               <div data-reveal>
-                <PopularPairs icons={icons} onSelect={(f, t) => convert({ from: f, to: t, amount: amount || "1" })} />
+                <PopularPairs
+                  icons={icons}
+                  prices={assetPrices}
+                  sparks={assetSparks}
+                  onSelect={(f, t) => convert({ from: f, to: t, amount: amount || "1" })}
+                />
               </div>
 
               <div className="psa-data-divider is-soft" aria-hidden="true" />
@@ -574,35 +634,9 @@ const POPULAR_PAIRS_VISIBLE_DEFAULT = 6;
 /* Di-export supaya bisa dites terpisah (lihat App.popular.test.jsx) —     */
 /* kartu-kartu di sini pernah menampilkan angka USD di bawah label "/IDR", */
 /* jenis bug yang cuma ketahuan lewat tes render, bukan tes fungsi murni.  */
-export function PopularPairs({ icons, onSelect }) {
+export function PopularPairs({ icons, prices, sparks, onSelect }) {
   const [expanded, setExpanded] = useState(false);
   const visiblePairs = expanded ? POPULAR_PAIRS : POPULAR_PAIRS.slice(0, POPULAR_PAIRS_VISIBLE_DEFAULT);
-
-  // Harga dasar (bukan kurs — cuma buat konteks di kartu). Minta USD *dan*
-  // IDR sekaligus — pasangan yang labelnya "/IDR" (BTC/IDR, USDT/IDR)
-  // harus benar-benar menampilkan angka Rupiah, bukan angka USD yang
-  // diberi label IDR. Tetap satu permintaan besar buat SEMUA koin, jadi
-  // cache-nya di server persis sama dengan yang dipakai ticker/fetchRates.
-  const [prices, setPrices] = useState(null);
-  const [sparks, setSparks] = useState({});
-  useEffect(() => {
-    let alive = true;
-    fetchPricesFor(Object.keys(COINS), "usd,idr")
-      .then((d) => alive && setPrices(d))
-      .catch(() => {});
-    /* Sparkline 24 jam. Gagal diam-diam: kartunya tetap berfungsi penuh
-       tanpa grafik mini, dan yang tampil skeleton — bukan garis palsu. */
-    fetchSparklines(
-      Object.values(COINS)
-        .map((c) => c.id)
-        .join(",")
-    )
-      .then((d) => alive && setSparks(d))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   return (
     <section className="psa-section" aria-labelledby="psa-popular-title">
@@ -653,7 +687,7 @@ export function PopularPairs({ icons, onSelect }) {
                     {typeof change === "number" && (
                       <span className={up ? "psa-ticker-up" : "psa-ticker-down"}>
                         {" "}
-                        {up ? "▲" : "▼"} {Math.abs(change).toFixed(2)}%
+                        {up ? "▲" : "▼"} {formatPercent(change)}
                       </span>
                     )}
                   </span>
@@ -745,6 +779,12 @@ function SiteFooter() {
           </a>
         </nav>
       </div>
+      {/* Baris kepercayaan singkat: batasan produk apa adanya, tidak lebih
+          — tidak ada klaim audit, sertifikasi keamanan, atau proteksi dana
+          yang tidak benar-benar ada. */}
+      <p className="psa-footer-trust">
+        Data pasar oleh CoinGecko · Hanya kalkulator · Tidak ada dana yang diproses
+      </p>
       <p className="psa-footer-disclaimer">Data hanya untuk tujuan informasi, bukan nasihat finansial.</p>
     </footer>
   );

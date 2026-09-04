@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { askAssistant } from "../lib/api.js";
 import { IconSend } from "./Icons.jsx";
+import Tooltip from "./Tooltip.jsx";
 
 const GREETING = {
   role: "assistant",
@@ -173,16 +174,20 @@ export default function HelpBot() {
           </div>
         </div>
       )}
-      <button
-        ref={btnRef}
-        className={`psa-help-bot ${tertutupCta && !open ? "is-tersembunyi" : ""}`}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-label={open ? "Tutup asisten" : "Buka asisten bantuan"}
-        title="Butuh bantuan?"
-      >
-        <Avatar size={40} />
-      </button>
+      <Tooltip label="Butuh bantuan?" side="top">
+        {(ttId) => (
+          <button
+            ref={btnRef}
+            className={`psa-help-bot ${tertutupCta && !open ? "is-tersembunyi" : ""}`}
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-label={open ? "Tutup asisten" : "Buka asisten bantuan"}
+            aria-describedby={open ? undefined : ttId}
+          >
+            <Avatar size={40} />
+          </button>
+        )}
+      </Tooltip>
     </>
   );
 }

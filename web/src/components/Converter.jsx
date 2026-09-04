@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import CoinSelect from "./CoinSelect.jsx";
 import PriceMeta from "./PriceMeta.jsx";
+import Tooltip from "./Tooltip.jsx";
 import { formatAmountSafe } from "../lib/format.js";
 import {
   IconSwapVertical,
@@ -96,6 +97,7 @@ export default function Converter({
   onShare,
   onToggleFavorite,
   isFavorite,
+  assetPrices,
 }) {
   const loading = status === "loading";
   const showResult = status === "done" && result;
@@ -172,15 +174,14 @@ export default function Converter({
             {/* polos tanpa role, dan tanpa role pembaca layar boleh          */}
             {/* mengabaikan labelnya sama sekali (terdeteksi axe-core sebagai */}
             {/* aria-prohibited-attr). "note" = informasi pelengkap.          */}
-            <span
-              className="psa-info-dot"
-              role="note"
-              tabIndex={0}
-              title="Ketik kalimat bebas, misalnya “250 USDT ke ETH”, terus tekan Proses."
-              aria-label="Info Quick Command"
-            >
-              <IconInfo size={13} />
-            </span>
+            <Tooltip label={'Ketik kalimat bebas, misalnya "250 USDT ke ETH", terus tekan Proses.'}>
+              {(ttId) => (
+                <span className="psa-info-dot" tabIndex={0} aria-describedby={ttId}>
+                  <IconInfo size={13} aria-hidden="true" />
+                  <span className="visually-hidden">Info Quick Command</span>
+                </span>
+              )}
+            </Tooltip>
           </div>
           <button
             type="button"
@@ -266,7 +267,7 @@ export default function Converter({
             aria-invalid={Boolean(amountError)}
             aria-describedby={amountError ? "psa-amount-error" : undefined}
           />
-          <CoinSelect value={fromSym} onChange={onFromChange} icons={icons} label="Aset asal" />
+          <CoinSelect value={fromSym} onChange={onFromChange} icons={icons} label="Aset asal" prices={assetPrices} />
         </div>
         {amountError && (
           <div className="psa-field-hint" id="psa-amount-error" role="alert">
@@ -276,32 +277,40 @@ export default function Converter({
       </div>
 
       <div className="psa-swap-row">
-        <button
-          className="psa-swap-btn"
-          onClick={handleSwap}
-          /* Menukar dua aset yang sama tidak mengubah apa pun. */
-          disabled={loading || pasanganSama}
-          title="Tukar arah aset"
-          aria-label="Tukar arah aset asal dan tujuan"
-          style={{ transform: `rotate(${swapTurns * 180}deg)`, transitionDuration: "280ms" }}
-        >
-          <IconSwapVertical size={18} />
-        </button>
+        <Tooltip label="Tukar arah aset">
+          {(ttId) => (
+            <button
+              className="psa-swap-btn"
+              onClick={handleSwap}
+              /* Menukar dua aset yang sama tidak mengubah apa pun. */
+              disabled={loading || pasanganSama}
+              aria-label="Tukar arah aset asal dan tujuan"
+              aria-describedby={ttId}
+              style={{ transform: `rotate(${swapTurns * 180}deg)`, transitionDuration: "280ms" }}
+            >
+              <IconSwapVertical size={18} />
+            </button>
+          )}
+        </Tooltip>
       </div>
 
       <div className="psa-field">
         <div className="psa-field-top">
           <span className="psa-field-label">Anda menerima</span>
-          <button
-            className="psa-field-copy"
-            onClick={onCopyResult}
-            title="Salin hasil"
-            aria-label="Salin hasil"
-            disabled={!showResult}
-            type="button"
-          >
-            {justCopied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-          </button>
+          <Tooltip label={justCopied ? "Tersalin" : "Salin hasil"}>
+            {(ttId) => (
+              <button
+                className="psa-field-copy"
+                onClick={onCopyResult}
+                aria-label="Salin hasil"
+                aria-describedby={ttId}
+                disabled={!showResult}
+                type="button"
+              >
+                {justCopied ? <IconCheck size={13} /> : <IconCopy size={13} />}
+              </button>
+            )}
+          </Tooltip>
         </div>
         <div className="psa-field-row">
           <span
@@ -327,7 +336,7 @@ export default function Converter({
               {loading ? "Menghitung" : resultDisplay ? `${resultDisplay.text} ${toSym.toUpperCase()}` : ""}
             </span>
           </span>
-          <CoinSelect value={toSym} onChange={onToChange} icons={icons} label="Aset tujuan" />
+          <CoinSelect value={toSym} onChange={onToChange} icons={icons} label="Aset tujuan" prices={assetPrices} />
         </div>
         {/* Tingginya dipesan lewat CSS (min-height) supaya baris ini tidak  */}
         {/* mendorong layout saat berganti antara hint dan kosong.          */}

@@ -63,6 +63,13 @@ export const IconMaximize = (p) => (
   </Svg>
 );
 
+export const IconAlertTriangle = (p) => (
+  <Svg {...p}>
+    <path d="M12 3.5 21.5 20h-19L12 3.5Z" />
+    <path d="M12 9.5v5M12 17.5v.01" />
+  </Svg>
+);
+
 export const IconRefresh = (p) => (
   <Svg {...p}>
     <path d="M3 11a9 9 0 0 1 15.3-5.6L21 8" />

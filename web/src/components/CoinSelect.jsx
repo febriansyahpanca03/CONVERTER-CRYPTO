@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ASSET_LIST } from "../data/assets.js";
+import { ASSET_LIST, isFiat } from "../data/assets.js";
+import { displayAmount, formatPercent } from "../lib/format.js";
 import CoinIcon from "./CoinIcon.jsx";
 import { IconChevronDown, IconSearch } from "./Icons.jsx";
 import { loadRecentCoins, pushRecentCoin } from "../lib/storage.js";
@@ -9,7 +10,7 @@ import { loadRecentCoins, pushRecentCoin } from "../lib/storage.js";
 /*  - Escape menutup dan mengembalikan fokus ke trigger                  */
 /*  - Panah atas/bawah menavigasi daftar                                 */
 /*  - Klik di luar menutup panel                                         */
-export default function CoinSelect({ value, onChange, icons, label }) {
+export default function CoinSelect({ value, onChange, icons, label, prices }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -82,6 +83,13 @@ export default function CoinSelect({ value, onChange, icons, label }) {
 
   function renderOption(a, i, keyPrefix) {
     const url = a.id ? icons[a.id] : undefined;
+    // Harga dasar (bukan kurs pasangan) + perubahan 24 jam, kalau ada.
+    // `prices` bisa null selagi masih dimuat, atau aset fiatnya tidak
+    // punya entri usd_24h_change — dalam kedua kasus itu bagian harga
+    // TIDAK dirender, bukan diisi placeholder yang terlihat seperti data.
+    const entry = a.id ? prices?.[a.id] : null;
+    const hargaUsd = entry?.usd;
+    const perubahan = entry?.usd_24h_change;
     return (
       <button
         key={`${keyPrefix}-${a.symbol}`}
@@ -98,6 +106,17 @@ export default function CoinSelect({ value, onChange, icons, label }) {
           <span className="psa-coin-option-sym">{a.symbol.toUpperCase()}</span>
           <span className="psa-coin-option-full">{a.name}</span>
         </span>
+        {!isFiat(a.symbol) && typeof hargaUsd === "number" && (
+          <span className="psa-coin-option-price">
+            {displayAmount(hargaUsd, "usd")}
+            {typeof perubahan === "number" && (
+              <span className={perubahan >= 0 ? "psa-ticker-up" : "psa-ticker-down"}>
+                {" "}
+                {perubahan >= 0 ? "▲" : "▼"} {formatPercent(perubahan)}
+              </span>
+            )}
+          </span>
+        )}
         {a.symbol === value && (
           <span className="psa-coin-option-check" aria-hidden="true">
             ✓
@@ -123,8 +142,22 @@ export default function CoinSelect({ value, onChange, icons, label }) {
         <IconChevronDown size={14} className={`psa-coin-chevron ${open ? "is-open" : ""}`} />
       </button>
 
+      {/* Backdrop cuma tampak (dan cuma menutup panel) di layar sempit —
+          lihat CSS: di desktop elemen ini display:none, klik-luar untuk
+          menutup popover sudah ditangani listener mousedown di atas. */}
+      {open && (
+        <div
+          className="psa-coin-backdrop"
+          aria-hidden="true"
+          onClick={() => setOpen(false)}
+        />
+      )}
       {open && (
         <div className="psa-coin-panel">
+          {/* Drag handle dekoratif — bottom sheet di mobile secara visual
+              terasa bisa diseret, walau geser sungguhan tidak diimplementasikan
+              (menutup tetap lewat backdrop/Escape/pilih item). */}
+          <div className="psa-coin-sheet-handle" aria-hidden="true" />
           <div className="psa-coin-search-wrap">
             <IconSearch size={15} className="psa-coin-search-icon" />
             <label htmlFor={`coin-search-${label}`} className="visually-hidden">

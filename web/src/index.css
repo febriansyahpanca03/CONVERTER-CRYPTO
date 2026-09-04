@@ -64,6 +64,10 @@
   --space-5: 24px;
   --space-6: 32px;
   --space-7: 48px;
+  --space-8: 64px;
+  /* Panel di dalam kartu (mis. isi bottom sheet, badge besar) — di antara
+     --radius-input (14px) dan --radius-lg (24px) kartu utama. */
+  --radius-panel: 16px;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 16px 40px rgba(0, 0, 0, 0.45);
@@ -621,18 +625,37 @@ img {
   background: rgba(6, 8, 16, 0.28);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease,
-    backdrop-filter 0.22s ease;
+  transition: height 0.22s ease, background 0.22s ease, border-color 0.22s ease,
+    box-shadow 0.22s ease, backdrop-filter 0.22s ease;
 }
+/* Menyusut ~14px setelah discroll — tinggi diikat ke class, bukan ke
+   --header-h (variabel itu tetap dipakai beberapa offset lain seperti
+   scroll-margin-top dan posisi toast, yang aman tetap memakai nilai
+   penuhnya). */
 .psa-header.is-scrolled {
+  height: calc(var(--header-h) - 14px);
   background: rgba(6, 8, 16, 0.82);
   border-bottom-color: var(--border);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.32);
 }
+.psa-header.is-scrolled .psa-logo-mark {
+  width: 28px;
+  height: 28px;
+}
+.psa-header.is-scrolled .psa-logo-name {
+  font-size: 17px;
+}
+@media (max-width: 640px) {
+  .psa-header.is-scrolled .psa-logo-name {
+    font-size: 14px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .psa-header {
+  .psa-header,
+  .psa-header.is-scrolled .psa-logo-mark,
+  .psa-header.is-scrolled .psa-logo-name {
     transition: none;
   }
 }
@@ -664,6 +687,7 @@ img {
 .psa-logo-mark {
   width: 34px;
   height: 34px;
+  transition: width 0.22s ease, height 0.22s ease;
   /* Heksagon, bukan kotak — biar logonya beda dari tombol/ikon lain. */
   clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);
   background: linear-gradient(135deg, var(--primary), var(--secondary));
@@ -685,6 +709,7 @@ img {
   letter-spacing: 0.055em;
   text-transform: uppercase;
   color: var(--text);
+  transition: font-size 0.22s ease;
 }
 @media (max-width: 640px) {
   .psa-logo-name {
@@ -1005,6 +1030,23 @@ img {
   .psa-subtitle {
     margin-top: 6px;
     font-size: 14px;
+  }
+}
+/* HP dengan tinggi terbatas (mis. 360x800) — tier di atas cuma berlaku
+   untuk layar lebar (min-width:900px), padahal HP kecil justru yang
+   paling butuh dipadatkan: terukur CTA jatuh 37px di luar viewport
+   sebelum tier ini ada. Angkanya senada dengan tier laptop 800px di
+   atas, disesuaikan ke skala mobile. */
+@media (max-height: 820px) and (max-width: 480px) {
+  .psa-hero {
+    padding: 20px 0 14px;
+  }
+  .psa-h1 {
+    font-size: clamp(24px, 7vw, 28px);
+  }
+  .psa-subtitle {
+    margin-top: 6px;
+    font-size: 13.5px;
   }
 }
 
@@ -1384,11 +1426,24 @@ img {
   opacity: 0.4;
   cursor: default;
 }
+/* Grid dua kolom: angka mengambil semua sisa ruang (minmax(0,1fr) —
+   angka 0 mencegah kolom melebar melewati kartu saat angkanya panjang),
+   selector token SELALU di kolom kedua dengan lebar konten sendiri
+   (auto) — tidak pernah ikut menyusut atau terdorong ke bawah angka. */
 .psa-field-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+/* Layar sangat sempit: selector pindah ke bawah, rata kanan — bukan
+   dipaksa muat di baris yang sama dengan angka besar. */
+@media (max-width: 359px) {
+  .psa-field-row {
+    grid-template-columns: 1fr;
+    justify-items: end;
+    gap: var(--space-2);
+  }
 }
 .psa-amount-input {
   flex: 1;
@@ -1701,12 +1756,23 @@ img {
   transform: rotate(180deg);
 }
 
+/* Backdrop: tak terlihat di desktop (popover ditutup lewat klik-luar via
+   listener mousedown yang sudah ada), jadi bottom sheet di layar sempit —
+   lihat media query di bawah. */
+.psa-coin-backdrop {
+  display: none;
+}
+.psa-coin-sheet-handle {
+  display: none;
+}
 .psa-coin-panel {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: min(300px, 88vw);
-  max-height: min(400px, 70vh);
+  /* 340-400px: cukup lega untuk menampilkan harga + perubahan 24 jam di
+     sisi kanan tanpa nama token terpotong. */
+  width: min(380px, 88vw);
+  max-height: min(480px, 70vh);
   background: var(--surface-front);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -1717,6 +1783,57 @@ img {
   overflow: hidden;
   transform-origin: top right;
   animation: psa-scale-in 0.16s ease-out;
+}
+@media (max-width: 640px) {
+  .psa-coin-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(2, 5, 12, 0.55);
+    animation: psa-fade-in 0.16s ease-out;
+  }
+  /* Bottom sheet: lepas dari posisi relatif trigger-nya, ditambatkan ke
+     dasar viewport. transform-origin & animasi disesuaikan supaya
+     terasa masuk dari bawah, bukan dari sudut kanan atas seperti
+     popover desktop. */
+  .psa-coin-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-height: 82vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform-origin: bottom center;
+    animation: psa-sheet-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .psa-coin-sheet-handle {
+    display: block;
+    flex-shrink: 0;
+    width: 36px;
+    height: 4px;
+    margin: 10px auto 2px;
+    border-radius: var(--radius-pill);
+    background: var(--border-strong);
+  }
+}
+@keyframes psa-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-coin-panel,
+  .psa-coin-backdrop {
+    animation: none;
+  }
 }
 .psa-coin-search-wrap {
   position: relative;
@@ -1796,6 +1913,16 @@ img {
 }
 .psa-coin-option.is-selected {
   background: var(--primary-soft);
+}
+.psa-coin-option-price {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: var(--space-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
 }
 .psa-coin-option-name {
   display: flex;
@@ -1939,6 +2066,19 @@ img {
   color: var(--text);
   letter-spacing: 0.02em;
 }
+/* Tenang & tidak lebih dominan dari angka hasil — teks biasa yang
+   diredupkan, BUKAN badge terpisah dengan border/background sendiri. */
+.psa-market-pair-tag {
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  letter-spacing: 0;
+}
+@media (max-width: 480px) {
+  .psa-market-pair-tag {
+    display: block;
+  }
+}
 .psa-market-change {
   display: inline-flex;
   align-items: center;
@@ -2002,6 +2142,54 @@ img {
   gap: 10px;
   border-color: rgba(232, 139, 139, 0.28);
   background: rgba(232, 139, 139, 0.06);
+}
+.psa-market-error-icon {
+  flex-shrink: 0;
+  color: #e88b8b;
+}
+.psa-market-error-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.psa-market-error-text strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.psa-market-error-text span {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.psa-market-error-text + .psa-icon-btn {
+  margin-left: auto;
+}
+.psa-meta-disclaimer .psa-market-error-icon {
+  vertical-align: -2px;
+}
+
+/* Bar offline: koneksi browser sungguhan (navigator online/offline),
+   bukan status per-permintaan. Tenang, bukan alarm — kuning redup, bukan
+   merah, karena ini kondisi yang wajar terjadi, bukan kegagalan sistem. */
+.psa-offline-bar {
+  position: relative;
+  z-index: 20;
+  padding: 8px var(--space-6);
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #e8d38f;
+  background: rgba(217, 164, 65, 0.1);
+  border-bottom: 1px solid rgba(217, 164, 65, 0.22);
+}
+@media (max-width: 640px) {
+  .psa-offline-bar {
+    padding: 8px var(--space-4);
+  }
 }
 /* Di layar sempit barisnya memang sudah wrap sendiri; yang perlu
    ditegaskan cuma jaraknya supaya dua baris itu tidak berdempetan. */
@@ -2676,6 +2864,12 @@ img {
   overflow-x: auto;
   scrollbar-width: none;
   min-width: 0;
+}
+/* Tombolnya sekarang dibungkus <Tooltip> (span.psa-tt) — flex-shrink:0
+   yang tadinya di tombol harus ikut berlaku di wrapper-nya juga supaya
+   strip periode yang bisa discroll ini tidak memampatkan tombolnya. */
+.psa-chart-tf .psa-tt {
+  flex-shrink: 0;
 }
 .psa-chart-tf::-webkit-scrollbar {
   display: none;
@@ -3507,9 +3701,15 @@ body.psa-chart-aktif .psa-help-bot:hover {
   color: var(--text-faint);
   white-space: nowrap;
 }
+.psa-footer-trust {
+  max-width: var(--shell-w);
+  margin: var(--space-4) auto 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
 .psa-footer-disclaimer {
   max-width: var(--shell-w);
-  margin: var(--space-3) auto 0;
+  margin: var(--space-2) auto 0;
   font-size: 12px;
   color: var(--text-faint);
   opacity: 0.75;
@@ -3770,5 +3970,70 @@ body.psa-chart-aktif .psa-help-bot:hover {
 @media (prefers-reduced-motion: reduce) {
   .psa-help-bot.is-tersembunyi {
     transform: none;
+  }
+}
+
+/* ============================================================ */
+/*  Sistem tooltip terpusat (Tooltip.jsx)                          */
+/* ============================================================ */
+/* Wrapper inline, tidak mengubah alur layout elemen pemicunya. */
+.psa-tt {
+  position: relative;
+  display: inline-flex;
+}
+.psa-tt-bubble {
+  position: absolute;
+  left: 50%;
+  z-index: 70;
+  padding: 5px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: #0a0c16;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 2px);
+  /* transition-delay TIDAK dipasang di sini (base state = kondisi         */
+  /* menghilang) — cuma di rule :hover/:focus-within di bawah. Sebelumnya  */
+  /* delay 0.35s dipasang di sini juga, jadi ikut berlaku dua arah: bubble */
+  /* butuh 0.35s + 0.12s buat benar-benar hilang setelah pointer/fokus     */
+  /* pindah, kelihatan seperti menggantung/macet (terbukti lewat           */
+  /* screenshot: 300ms setelah mouse dijauhkan, tooltip masih penuh).      */
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+  pointer-events: none;
+}
+.psa-tt-top .psa-tt-bubble {
+  bottom: calc(100% + 7px);
+}
+.psa-tt-bottom .psa-tt-bubble {
+  top: calc(100% + 7px);
+  transform: translate(-50%, -2px);
+}
+/* :focus-within, bukan cuma :hover — jadi otomatis terpicu saat elemen
+   di dalamnya menerima fokus keyboard, tanpa listener JS terpisah. */
+.psa-tt:hover .psa-tt-bubble,
+.psa-tt:focus-within .psa-tt-bubble {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition-delay: 0.35s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-tt-bubble {
+    transition: opacity 0.01s;
+    transition-delay: 0s;
+  }
+}
+/* Sentuh layar tidak punya konsep hover — tooltip yang menggantung di
+   atas target 44px cuma akan mengganggu. Info yang sama biasanya sudah
+   tersedia lewat teks/label yang terlihat di sebelahnya. */
+@media (pointer: coarse) {
+  .psa-tt-bubble {
+    display: none;
   }
 }

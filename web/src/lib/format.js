@@ -62,6 +62,15 @@ export function formatCompactAmount(n, sym) {
   return displayAmount(n, sym);
 }
 
+/* Persentase: maksimal dua digit desimal, dipakai di semua tempat yang
+   menampilkan perubahan harga (ticker, market bar, popular pairs, token
+   picker, chart) — satu sumber format, bukan .toFixed(2) diulang-ulang
+   di tiap komponen. */
+export function formatPercent(n) {
+  if (!Number.isFinite(n)) return "–";
+  return `${Math.abs(n).toFixed(2)}%`;
+}
+
 /* "8 detik lalu" / "3 menit lalu" / "2 jam lalu" — dihitung dari epoch ms */
 export function relativeTime(ts, now = Date.now()) {
   if (!ts) return "–";

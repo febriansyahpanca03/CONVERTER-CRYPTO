@@ -9,7 +9,7 @@ import ChartLoadingState from "./ChartLoadingState.jsx";
 import ChartErrorState from "./ChartErrorState.jsx";
 import ChartEmptyState from "./ChartEmptyState.jsx";
 import { IconClose } from "../Icons.jsx";
-import { displayAmount, relativeTime } from "../../lib/format.js";
+import { displayAmount, relativeTime, formatPercent } from "../../lib/format.js";
 import { PERIOD_LABEL } from "../../lib/chart.js";
 
 const DETAIL_HEIGHT = 380;
@@ -113,7 +113,7 @@ export default function ChartDetailModal({
               <span className={`psa-insight-change ${stats.changeAbs >= 0 ? "psa-ticker-up" : "psa-ticker-down"}`}>
                 {stats.changeAbs >= 0 ? "▲" : "▼"} {displayAmount(Math.abs(stats.changeAbs), pair.vsCurrency)} (
                 {stats.changePct >= 0 ? "+" : "−"}
-                {Math.abs(stats.changePct).toFixed(2)}% · {period})
+                {formatPercent(stats.changePct)} · {period})
               </span>
             </>
           )}
