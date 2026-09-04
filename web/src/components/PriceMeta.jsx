@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 import { formatAmount, relativeTime, priceStatus } from "../lib/format.js";
 import { IconRefresh } from "./Icons.jsx";
 
+/* Kata-katanya sengaja menjelaskan KESEGARAN datanya, bukan istilah
+   teknis: pengguna tidak perlu tahu arti "stale", tapi perlu tahu bahwa
+   harganya sudah lama tidak diperbarui. */
 const STATUS_LABEL = {
-  live: "Live",
-  delayed: "Delayed",
-  stale: "Data lama",
-  offline: "Offline",
-  error: "Error",
+  live: "Harga live",
+  delayed: "Harga tertunda",
+  stale: "Harga lama",
+  unknown: "Status tidak diketahui",
+  offline: "Koneksi terputus",
+  error: "Data terganggu",
 };
 
 const SPREAD_NOTE =
@@ -32,7 +36,18 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
   if (status === "idle") return null;
 
   if (status === "loading") {
-    if (inline) return null; // tombol Konversi sendiri sudah menunjukkan status loading
+    if (inline) {
+      /* Skeleton berukuran tetap, bukan null: tanpa ini barisnya hilang
+         saat memuat lalu muncul lagi, dan kartunya berubah tinggi dua kali
+         untuk satu konversi. */
+      return (
+        <div className="psa-market-bar" aria-hidden="true">
+          <span className="psa-skeleton" style={{ width: 92, height: 12 }} />
+          <span className="psa-skeleton" style={{ width: 70, height: 12 }} />
+          <span className="psa-skeleton" style={{ width: 110, height: 12 }} />
+        </div>
+      );
+    }
     return (
       <div className="psa-meta">
         <div className="psa-skeleton">
@@ -48,12 +63,12 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
     const badgeText = offline ? STATUS_LABEL.offline : STATUS_LABEL.error;
     if (inline) {
       return (
-        <div className="psa-meta-inline psa-meta-inline-error" role="alert">
+        <div className="psa-market-bar psa-market-bar-error" role="alert">
           <span className={`psa-status-badge ${badgeClass}`}>
             <span className="psa-status-dot" aria-hidden="true" />
             {badgeText}
           </span>
-          <span>{message}</span>
+          <span>{message || "Data pasar belum tersedia"}</span>
           <button className="psa-icon-btn" onClick={onRefresh} title="Coba lagi" aria-label="Coba ambil harga lagi">
             <IconRefresh size={15} />
           </button>
@@ -83,10 +98,43 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
     const badgeClass = `psa-status-${dataStatus}`;
 
     if (inline) {
+      /* change24h bisa null kalau CoinGecko tidak mengirim data perubahan
+         untuk salah satu sisi pasangan — dalam kasus itu bagian ini tidak
+         ditampilkan sama sekali, bukan diisi 0%. */
+      const perubahan = typeof result.change24h === "number" ? result.change24h : null;
+      const naik = perubahan !== null && perubahan >= 0;
+
       return (
-        <div className="psa-meta-inline" title={SPREAD_NOTE}>
-          <div className="psa-meta-inline-rate">
-            1 {fromSym.toUpperCase()} = <strong>{formatAmount(result.rate, toSym)}</strong> {toSym.toUpperCase()}
+        <div className="psa-market-bar" title={SPREAD_NOTE}>
+          <div className="psa-market-bar-main">
+            <span className="psa-market-pair">
+              {fromSym.toUpperCase()} / {toSym.toUpperCase()}
+            </span>
+            {perubahan !== null && (
+              /* Panah ▲/▼ selalu ikut: warna saja tidak cukup untuk
+                 pengguna dengan buta warna. */
+              <span className={`psa-market-change ${naik ? "psa-ticker-up" : "psa-ticker-down"}`}>
+                {naik ? "▲" : "▼"} {Math.abs(perubahan).toFixed(2)}%
+                <span className="psa-market-period">(24J)</span>
+              </span>
+            )}
+            <span className={`psa-status-badge ${badgeClass}`}>
+              <span className="psa-status-dot" aria-hidden="true" />
+              {STATUS_LABEL[dataStatus] || STATUS_LABEL.live}
+            </span>
+          </div>
+          <div className="psa-market-bar-sub">
+            <span className="psa-market-rate">
+              1 {fromSym.toUpperCase()} ={" "}
+              <strong>{formatAmount(result.rate, toSym)}</strong> {toSym.toUpperCase()}
+            </span>
+            {/* Kata "Diperbarui" dibuang dan pemisah titik diganti gap:
+                dengan keduanya, isi bar tidak muat satu baris di lebar
+                converter (694px) dan barnya jadi tiga baris setinggi 87px.
+                Waktu relatif tepat di sebelah badge status sudah terbaca
+                sebagai waktu pembaruan. */}
+            <span className="psa-market-time">{relativeTime(result.updatedAt)}</span>
+            <span className="psa-market-source">CoinGecko</span>
             <button
               className="psa-icon-btn psa-meta-refresh"
               onClick={onRefresh}
@@ -95,13 +143,6 @@ export default function PriceMeta({ status, result, message, fromSym, toSym, onR
             >
               <IconRefresh size={13} />
             </button>
-          </div>
-          <div className="psa-meta-inline-status">
-            <span className={`psa-status-badge ${badgeClass}`}>
-              <span className="psa-status-dot" aria-hidden="true" />
-              {STATUS_LABEL[dataStatus] || "Live"}
-            </span>
-            <span>Diperbarui {relativeTime(result.updatedAt)}</span>
           </div>
         </div>
       );

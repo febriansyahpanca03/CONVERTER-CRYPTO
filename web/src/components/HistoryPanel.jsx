@@ -10,7 +10,7 @@ const VISIBLE_DEFAULT = 3;
 /* browser saja (tidak ada server/database) — sesuai arsitektur backend  */
 /* yang stateless. Cuma 3 baris ditampilkan dulu supaya halaman tidak    */
 /* kepanjangan, sisanya lewat "Lihat semua".                             */
-export default function HistoryPanel({ history, onReuse, onClear, icons }) {
+export default function HistoryPanel({ history, onReuse, onClear, icons, onStart }) {
   const [expanded, setExpanded] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const visible = expanded ? history : history.slice(0, VISIBLE_DEFAULT);
@@ -46,7 +46,33 @@ export default function HistoryPanel({ history, onReuse, onClear, icons }) {
       </div>
 
       {history.length === 0 ? (
-        <p className="psa-history-empty">Belum ada apa-apa di sini. Coba hitung sesuatu dulu.</p>
+        <div className="psa-history-blank">
+          {/* Ikon garis sederhana, bukan ilustrasi besar — kartunya tetap
+              berperan sebagai pelengkap, bukan penarik perhatian. */}
+          <svg
+            className="psa-history-blank-icon"
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 12a9 9 0 1 0 3-6.7" />
+            <path d="M3 4v4h4" />
+            <path d="M12 8v4l3 2" />
+          </svg>
+          <span className="psa-history-blank-title">Belum ada riwayat</span>
+          <p className="psa-history-blank-text">Hasil konversi terbarumu akan muncul di sini.</p>
+          {onStart && (
+            <button type="button" className="psa-history-blank-cta" onClick={onStart}>
+              Mulai konversi
+            </button>
+          )}
+        </div>
       ) : (
         <div className="psa-history-table-wrap">
           <table className="psa-history-table">
@@ -104,6 +130,27 @@ export default function HistoryPanel({ history, onReuse, onClear, icons }) {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Ringkasan tipis: mengisi sisa ruang kartu (yang tingginya disamakan
+          dengan chart di desktop) dengan informasi yang berguna, bukan
+          dibiarkan kosong. Semuanya dihitung dari riwayat yang sudah ada
+          di localStorage — tidak ada data baru yang diambil. */}
+      {history.length > 0 && (
+        <div className="psa-history-summary">
+          <span>
+            <strong>{history.length}</strong> konversi tersimpan
+          </span>
+          <span>
+            Terakhir:{" "}
+            <strong>
+              {history[0].from.toUpperCase()} → {history[0].to.toUpperCase()}
+            </strong>
+          </span>
+          <span>
+            Aktivitas: <strong>{relativeTime(history[0].at)}</strong>
+          </span>
         </div>
       )}
     </div>

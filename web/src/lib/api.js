@@ -60,6 +60,38 @@ export async function parseWithModel(text) {
 /* Rumus konversi murni, dipisah dari fetchRates supaya bisa dites tanpa */
 /* jaringan. Semua aset dinilai dalam satuan BTC supaya satu rumus      */
 /* berlaku untuk kripto→kripto, kripto→fiat, maupun fiat→kripto.        */
+/* Perubahan 24 jam sebuah aset diukur dalam USD.
+
+   Untuk kripto, CoinGecko memberi `usd_24h_change` langsung. Untuk fiat,
+   yang tersedia adalah perubahan BTC terhadap fiat itu — dan perubahan
+   fiat terhadap USD adalah kebalikan dari selisih keduanya. Semua angka
+   di sini TURUNAN dari data yang memang dikirim CoinGecko; tidak ada yang
+   dikarang, dan kalau datanya tidak ada, hasilnya null (bukan nol). */
+function change24hVsUsd(data, sym) {
+  const btc = data.bitcoin;
+  if (isCoin(sym)) {
+    const v = data[COINS[sym].id]?.usd_24h_change;
+    return typeof v === "number" ? v : null;
+  }
+  if (sym === "usd") return 0;
+  const btcVsFiat = btc?.[`${sym}_24h_change`];
+  const btcVsUsd = btc?.usd_24h_change;
+  if (typeof btcVsFiat !== "number" || typeof btcVsUsd !== "number") return null;
+  // (1+btcUsd)/(1+btcFiat) - 1 = perubahan fiat terhadap USD
+  return ((1 + btcVsUsd / 100) / (1 + btcVsFiat / 100) - 1) * 100;
+}
+
+/* Perubahan 24 jam PASANGAN from/to: selisih majemuk dari perubahan
+   masing-masing terhadap USD. Kalau salah satunya tidak diketahui,
+   hasilnya null — lebih baik tidak menampilkan apa pun daripada angka
+   yang tidak bisa dipertanggungjawabkan. */
+export function computePairChange24h(data, fromSym, toSym) {
+  const a = change24hVsUsd(data, fromSym);
+  const b = change24hVsUsd(data, toSym);
+  if (a === null || b === null) return null;
+  return ((1 + a / 100) / (1 + b / 100) - 1) * 100;
+}
+
 export function computeRate(data, fromSym, toSym) {
   const btc = data.bitcoin;
   if (!btc) throw new Error("Data harga tidak lengkap.");
@@ -77,6 +109,7 @@ export function computeRate(data, fromSym, toSym) {
 
   return {
     rate: inBTC(fromSym) / inBTC(toSym),
+    change24h: computePairChange24h(data, fromSym, toSym),
     updatedAt: btc.last_updated_at ? btc.last_updated_at * 1000 : Date.now(),
   };
 }
@@ -139,6 +172,15 @@ export async function askAssistant(text) {
   if (!res.ok) throw new Error("Asisten sedang tidak bisa dihubungi.");
   const data = await res.json();
   return data.reply;
+}
+
+/* Sparkline 24 jam (24 titik per token) untuk kartu Pasangan Populer.
+   Token yang datanya tidak dikirim CoinGecko tidak muncul di hasil — dan
+   kartunya menampilkan skeleton, BUKAN garis yang dibuat-buat. */
+export async function fetchSparklines(ids) {
+  const res = await fetch(`/api/sparklines?ids=${ids}`);
+  if (!res.ok) throw new Error("sparklines fetch failed");
+  return res.json();
 }
 
 export async function fetchIcons(ids) {

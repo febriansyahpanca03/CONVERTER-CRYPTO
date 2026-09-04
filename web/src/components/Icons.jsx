@@ -53,6 +53,16 @@ export const IconStar = ({ filled, ...p }) => (
   </Svg>
 );
 
+/* Ikon perbesar untuk tombol yang membuka chart versi besar. */
+export const IconMaximize = (p) => (
+  <Svg {...p}>
+    <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+    <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+    <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+    <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+  </Svg>
+);
+
 export const IconRefresh = (p) => (
   <Svg {...p}>
     <path d="M3 11a9 9 0 0 1 15.3-5.6L21 8" />

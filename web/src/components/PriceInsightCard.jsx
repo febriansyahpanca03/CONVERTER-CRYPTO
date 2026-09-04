@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import CoinIcon from "./CoinIcon.jsx";
-import { IconInfo } from "./Icons.jsx";
+import { IconInfo, IconMaximize } from "./Icons.jsx";
 import ChartTypeToggle from "./chart/ChartTypeToggle.jsx";
 import TimeframeSelector from "./chart/TimeframeSelector.jsx";
 import ChartLoadingState from "./chart/ChartLoadingState.jsx";
@@ -63,6 +63,27 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
   const [period, setPeriod] = useState(() => loadChartPrefs().period || "24J");
   const [hoverPoint, setHoverPoint] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const detailBtnRef = useRef(null);
+  const kartuRef = useRef(null);
+
+  /* Menandai <body> selagi pointer berada di kartu chart, supaya badge
+     bantuan yang melayang di pojok kanan bawah diredupkan & dikecilkan
+     dan tidak menutupi kontrol atau tooltip chart (lihat CSS
+     body.psa-chart-aktif .psa-help-bot). Kelasnya selalu dilepas saat
+     unmount agar tidak tertinggal. */
+  useEffect(() => {
+    const el = kartuRef.current;
+    if (!el) return undefined;
+    const masuk = () => document.body.classList.add("psa-chart-aktif");
+    const keluar = () => document.body.classList.remove("psa-chart-aktif");
+    el.addEventListener("pointerenter", masuk);
+    el.addEventListener("pointerleave", keluar);
+    return () => {
+      el.removeEventListener("pointerenter", masuk);
+      el.removeEventListener("pointerleave", keluar);
+      keluar();
+    };
+  }, []);
   const [retryNonce, setRetryNonce] = useState(0);
 
   const pair = useMemo(() => resolveChartPair(fromSym, toSym), [fromSym, toSym]);
@@ -119,15 +140,25 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
   }
 
   return (
-    <div className="psa-card psa-insight-card">
+    <div className="psa-card psa-insight-card" ref={kartuRef}>
       {/* Baris 1: judul + tombol detail */}
       <div className="psa-insight-head">
         <div className="psa-insight-title-row">
           <CoinIcon sym={pair.sym} size={18} iconUrl={icons?.[pair.coinId]} />
           <h2 className="psa-insight-title">Insight Harga {pair.sym.toUpperCase()}</h2>
         </div>
-        <button className="psa-insight-detail-btn" onClick={() => setModalOpen(true)}>
-          Lihat detail
+        {/* Tombol yang sama dengan sebelumnya (satu kontrol, bukan dua):
+            hanya ditambah ikon perbesar supaya jelas ini membuka tampilan
+            besar. Modalnya sudah punya Escape, focus trap, dan pengembalian
+            fokus ke tombol ini — lihat ChartDetailModal.jsx. */}
+        <button
+          ref={detailBtnRef}
+          className="psa-insight-detail-btn"
+          onClick={() => setModalOpen(true)}
+          aria-label="Perbesar grafik harga"
+        >
+          <IconMaximize size={13} />
+          Perbesar
         </button>
       </div>
 
@@ -182,7 +213,12 @@ export default function PriceInsightCard({ fromSym, toSym, icons }) {
         )}
         {status === "done" && seriesLength === 0 && <ChartEmptyState height={CHART_HEIGHT} />}
         {data && seriesLength > 0 && (
-          <div className={status === "loading" ? "psa-chart-dim" : ""}>
+          /* key berganti tiap tipe/periode berubah -> React memasang ulang
+             blok ini, dan animasi crossfade-nya jalan lagi dari awal. */
+          <div
+            key={`${chartType}-${period}`}
+            className={`psa-chart-fade ${status === "loading" ? "psa-chart-dim" : ""}`}
+          >
             <Suspense fallback={<ChartLoadingState height={CHART_HEIGHT} />}>
               {chartType === "line" ? (
                 <LinePriceChart

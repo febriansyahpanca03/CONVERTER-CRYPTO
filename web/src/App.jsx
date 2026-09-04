@@ -10,8 +10,16 @@ import Toast from "./components/Toast.jsx";
 import HelpBot from "./components/HelpBot.jsx";
 import { COINS, known } from "./data/assets.js";
 import CoinIcon from "./components/CoinIcon.jsx";
+import Sparkline from "./components/Sparkline.jsx";
 import { IconTrendingUp, IconMessageCircle, IconZap, IconGithub } from "./components/Icons.jsx";
-import { parseWithModel, parseFallback, fetchRates, fetchIcons, fetchPricesFor } from "./lib/api.js";
+import {
+  parseWithModel,
+  parseFallback,
+  fetchRates,
+  fetchIcons,
+  fetchPricesFor,
+  fetchSparklines,
+} from "./lib/api.js";
 import { formatAmountSafe, displayAmount } from "./lib/format.js";
 import {
   loadHistory,
@@ -21,6 +29,41 @@ import {
   loadLastPair,
   saveLastPair,
 } from "./lib/storage.js";
+
+/* Entrance animation antarbagian.
+
+   IntersectionObserver, BUKAN listener scroll: observer hanya bekerja saat
+   perpotongan benar-benar berubah, sedangkan listener scroll jalan di
+   setiap frame gulir. Tiap elemen dilepas dari pengamatan begitu tampil,
+   jadi animasinya benar-benar sekali seumur halaman — bukan berulang tiap
+   kali discroll naik-turun.
+
+   prefers-reduced-motion: seluruh elemen langsung ditandai tampil tanpa
+   observer sama sekali. */
+function useReveal() {
+  useEffect(() => {
+    const target = document.querySelectorAll("[data-reveal]");
+    if (!target.length) return undefined;
+
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      target.forEach((el) => el.classList.add("is-revealed"));
+      return undefined;
+    }
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => {
+          if (!en.isIntersecting) return;
+          en.target.classList.add("is-revealed");
+          obs.unobserve(en.target);
+        });
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }
+    );
+    target.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+}
 
 const NOT_UNDERSTOOD =
   'Belum kebaca nih maksudnya. Coba tulis kayak "250 USDT ke ETH", atau pilih asetnya manual aja.';
@@ -49,6 +92,8 @@ export default function App() {
   /* dipanggil lagi, biar respons lama yang telat nggak menimpa hasil     */
   /* yang lebih baru saat pengguna ganti aset dengan cepat.               */
   const activeRequest = useRef(null);
+
+  useReveal();
 
   /* Ikon token asli, diambil sekali untuk seluruh daftar aset. */
   useEffect(() => {
@@ -81,6 +126,47 @@ export default function App() {
       setFromSym(last.from);
       setToSym(last.to);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Pintasan keyboard.
+
+     Aturan pentingnya: pintasan TIDAK boleh merebut ketikan pengguna.
+     Karena itu "/" diabaikan sepenuhnya kalau fokus sedang berada di
+     input/textarea/select atau elemen contenteditable — kalau tidak,
+     pengguna tidak akan pernah bisa mengetik garis miring di kolom mana
+     pun. Ctrl/Cmd+Enter tetap berlaku di dalam input karena kombinasinya
+     tidak bentrok dengan pengetikan biasa. */
+  useEffect(() => {
+    function sedangMengetik(el) {
+      if (!el) return false;
+      const tag = el.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+    }
+
+    function onKey(e) {
+      const aktif = document.activeElement;
+
+      // "/" -> fokus ke Quick Command
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey && !sedangMengetik(aktif)) {
+        const qc = document.getElementById("psa-quick-input");
+        if (qc) {
+          e.preventDefault(); // cegah quick-find bawaan browser
+          qc.focus();
+          qc.select?.();
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + Enter -> jalankan konversi dari form
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        convert();
+      }
+    }
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -162,6 +248,19 @@ export default function App() {
       setAmountError("Jumlahnya harus lebih dari nol.");
       return;
     }
+    /* Aset asal == tujuan: tidak ada yang perlu dihitung, dan hasilnya
+       (rasio 1:1) tidak layak masuk riwayat. Converter sudah menampilkan
+       ajakan memilih tujuan lain, jadi di sini cukup berhenti tanpa
+       memunculkan pesan error. */
+    if (from === to) {
+      setFromSym(from);
+      setToSym(to);
+      setAmount(String(rawAmount));
+      setStatus("idle");
+      setResult(null);
+      return;
+    }
+
     setAmountError("");
     setStatus("loading");
     setMessage("");
@@ -176,10 +275,10 @@ export default function App() {
     activeRequest.current = controller;
 
     try {
-      const { rate, updatedAt } = await fetchRates(from, to, controller.signal);
+      const { rate, change24h, updatedAt } = await fetchRates(from, to, controller.signal);
       if (controller.signal.aborted) return; // sudah ditimpa request yang lebih baru
       const value = amt * rate;
-      const res = { amount: amt, from, to, rate, value, updatedAt };
+      const res = { amount: amt, from, to, rate, value, change24h, updatedAt };
       setResult(res);
       setStatus("done");
       pushHistory({ amount: amt, from, to, rate, value, at: Date.now() });
@@ -330,7 +429,7 @@ export default function App() {
               {/* Kalkulator: sengaja tetap sempit (~720px) walau stack di   */}
               {/* sekitarnya sekarang selebar shell — .psa-narrow yang jaga  */}
               {/* lebarnya, bukan .psa-stack lagi (lihat catatan di CSS).    */}
-              <div className="psa-narrow">
+              <div className="psa-narrow" data-reveal>
                 <div className="psa-converter-shell" id="converter">
                   <Converter
                     amount={amount}
@@ -389,16 +488,26 @@ export default function App() {
               {/* menambah judul atau menu baru.                             */}
               <div className="psa-data-divider" aria-hidden="true" />
 
-              <PopularPairs icons={icons} onSelect={(f, t) => convert({ from: f, to: t, amount: amount || "1" })} />
+              <div data-reveal>
+                <PopularPairs icons={icons} onSelect={(f, t) => convert({ from: f, to: t, amount: amount || "1" })} />
+              </div>
 
               <div className="psa-data-divider is-soft" aria-hidden="true" />
 
-              <div className="psa-insight-row">
+              <div className="psa-insight-row" data-reveal>
                 <HistoryPanel
                   history={history}
                   onReuse={reuseHistory}
                   onClear={clearHistory}
                   icons={icons}
+                  /* Memfokuskan kolom jumlah di kalkulator. Lewat DOM
+                     langsung, bukan ref yang dioper melintasi beberapa
+                     komponen hanya untuk satu tombol opsional. */
+                  onStart={() => {
+                    const el = document.getElementById("psa-amount");
+                    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+                    el?.focus();
+                  }}
                 />
                 {/* Kartu grafik itu pelengkap, dan dia satu-satunya bagian  */}
                 {/* yang menggambar data eksternal berbentuk bebas. Kalau     */}
@@ -411,7 +520,9 @@ export default function App() {
 
               <div className="psa-data-divider is-soft" aria-hidden="true" />
 
-              <WhyPancaSwap />
+              <div data-reveal>
+                <WhyPancaSwap />
+              </div>
 
               <div className="psa-narrow">
                 <section id="tentang" className="psa-card psa-about">
@@ -473,10 +584,20 @@ export function PopularPairs({ icons, onSelect }) {
   // diberi label IDR. Tetap satu permintaan besar buat SEMUA koin, jadi
   // cache-nya di server persis sama dengan yang dipakai ticker/fetchRates.
   const [prices, setPrices] = useState(null);
+  const [sparks, setSparks] = useState({});
   useEffect(() => {
     let alive = true;
     fetchPricesFor(Object.keys(COINS), "usd,idr")
       .then((d) => alive && setPrices(d))
+      .catch(() => {});
+    /* Sparkline 24 jam. Gagal diam-diam: kartunya tetap berfungsi penuh
+       tanpa grafik mini, dan yang tampil skeleton — bukan garis palsu. */
+    fetchSparklines(
+      Object.values(COINS)
+        .map((c) => c.id)
+        .join(",")
+    )
+      .then((d) => alive && setSparks(d))
       .catch(() => {});
     return () => {
       alive = false;
@@ -537,6 +658,14 @@ export function PopularPairs({ icons, onSelect }) {
                     )}
                   </span>
                 </span>
+                {/* Grafik mini di sisi kanan kartu. Datanya harga asli 24 jam
+                    terakhir dari CoinGecko; kalau belum sampai, yang tampil
+                    skeleton berukuran sama supaya kartunya tidak bergeser. */}
+                {fromMeta && sparks[fromMeta.id] ? (
+                  <Sparkline points={sparks[fromMeta.id]} naik={up} />
+                ) : (
+                  <span className="psa-skeleton psa-skeleton-spark" aria-hidden="true" />
+                )}
               </button>
             );
           })}

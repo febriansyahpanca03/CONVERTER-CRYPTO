@@ -35,6 +35,12 @@ function Avatar({ size = 22, circle = true }) {
 /* yang dibatasi hanya menjawab seputar cara pakai situs ini.            */
 export default function HelpBot() {
   const [open, setOpen] = useState(false);
+  /* Di layar sempit, badge yang melayang di pojok kanan bawah pasti
+     bertumpuk dengan tombol Konversi yang selebar kartu (terukur di
+     390x844). Karena CTA tidak boleh pernah tertutupi, badge-nya
+     disembunyikan selama CTA berada di dalam viewport — dan muncul lagi
+     begitu pengguna menggulir melewatinya. */
+  const [tertutupCta, setTertutupCta] = useState(false);
   const [messages, setMessages] = useState([GREETING]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -42,6 +48,17 @@ export default function HelpBot() {
   const btnRef = useRef(null);
   const listRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    const cta = document.querySelector(".psa-convert-btn");
+    if (!cta || !window.matchMedia?.("(max-width: 640px)").matches) return undefined;
+    const obs = new IntersectionObserver(
+      ([en]) => setTertutupCta(en.isIntersecting),
+      { threshold: 0.15 }
+    );
+    obs.observe(cta);
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -158,7 +175,7 @@ export default function HelpBot() {
       )}
       <button
         ref={btnRef}
-        className="psa-help-bot"
+        className={`psa-help-bot ${tertutupCta && !open ? "is-tersembunyi" : ""}`}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? "Tutup asisten" : "Buka asisten bantuan"}

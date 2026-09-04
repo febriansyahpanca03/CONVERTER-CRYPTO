@@ -99,6 +99,12 @@ export default function Converter({
 }) {
   const loading = status === "loading";
   const showResult = status === "done" && result;
+  /* Aset asal dan tujuan sama (mis. dari deep link ?from=eth&to=eth).
+     Ini BUKAN error — tidak ada yang salah diketik pengguna, cuma belum
+     ada yang bisa dihitung. Karena itu tampilannya informasi cyan, bukan
+     peringatan merah. */
+  const pasanganSama = fromSym === toSym;
+
   /* Sumber kebenaran tunggal untuk "boleh dikonversi atau belum".
      Dipakai bersama oleh tombol Konversi (disabled) dan tampilan hasil
      (placeholder), supaya keduanya tidak pernah saling bertentangan —
@@ -112,6 +118,18 @@ export default function Converter({
     const nilai = Number(t.replace(",", "."));
     return Number.isFinite(nilai) && nilai > 0;
   })();
+  const bisaKonversi = jumlahValid && !pasanganSama;
+
+  /* Tiga tujuan populer yang ditawarkan saat pasangannya sama. Yang sama
+     dengan aset asal disaring, jadi chip-nya tidak pernah menawarkan
+     pasangan yang sama lagi. */
+  const saranTujuan = ["idr", "usdt", "btc"].filter((s) => s !== fromSym).slice(0, 3);
+  /* Label pintasan mengikuti papan ketik penggunanya: di macOS tombolnya
+     Command, bukan Control. */
+  const pintasanKonversi =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "")
+      ? "⌘ ↵"
+      : "Ctrl ↵";
   const amountRef = useRef(null);
   const angkaRef = useRef(null);
   const resultDisplay = showResult ? formatAmountSafe(result.value, toSym) : null;
@@ -190,7 +208,13 @@ export default function Converter({
                 onKeyDown={(e) => e.key === "Enter" && onRunQuickCommand(query)}
                 placeholder="Contoh: 250 USDT ke ETH"
                 disabled={loading}
+                aria-keyshortcuts="/"
               />
+              {/* Hint pintasan, desktop saja. aria-hidden karena informasinya
+                  sudah disampaikan lewat aria-keyshortcuts di input-nya. */}
+              <span className="psa-kbd" aria-hidden="true">
+                /
+              </span>
               <button
                 className="psa-qc-go"
                 onClick={() => onRunQuickCommand(query)}
@@ -255,7 +279,8 @@ export default function Converter({
         <button
           className="psa-swap-btn"
           onClick={handleSwap}
-          disabled={loading}
+          /* Menukar dua aset yang sama tidak mengubah apa pun. */
+          disabled={loading || pasanganSama}
           title="Tukar arah aset"
           aria-label="Tukar arah aset asal dan tujuan"
           style={{ transform: `rotate(${swapTurns * 180}deg)`, transitionDuration: "280ms" }}
@@ -295,7 +320,7 @@ export default function Converter({
               aria-hidden="true"
               className={showResult ? "" : "psa-result-empty"}
             >
-              {loading ? "0.00" : resultDisplay ? resultDisplay.text : "—"}
+              {loading && !pasanganSama ? "0.00" : resultDisplay && !pasanganSama ? resultDisplay.text : "—"}
             </span>
             {/* Nilai final, diumumkan sekali saja. */}
             <span className="visually-hidden">
@@ -307,10 +332,34 @@ export default function Converter({
         {/* Tingginya dipesan lewat CSS (min-height) supaya baris ini tidak  */}
         {/* mendorong layout saat berganti antara hint dan kosong.          */}
         <div className="psa-result-hint">
-          {!showResult && !loading && "Masukkan jumlah untuk melihat hasil"}
+          {!pasanganSama && !showResult && !loading && "Masukkan jumlah untuk melihat hasil"}
         </div>
+
+        {pasanganSama && (
+          <div className="psa-same-pair" role="status">
+            <p className="psa-same-pair-text">
+              Pilih aset tujuan yang berbeda untuk melakukan konversi.
+            </p>
+            <div className="psa-same-pair-chips">
+              {saranTujuan.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="psa-chip psa-same-pair-chip"
+                  /* Hanya tujuannya yang diganti — jumlah yang sudah diketik
+                     pengguna sengaja dibiarkan apa adanya. */
+                  onClick={() => onToChange(s)}
+                >
+                  {s.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Kurs "1 ETH = 1 ETH" tidak memberi informasi apa pun. */}
+      {!pasanganSama && (
       <PriceMeta
         variant="inline"
         status={status}
@@ -321,8 +370,9 @@ export default function Converter({
         toSym={toSym}
         onRefresh={onRefresh}
       />
+      )}
 
-      {showResult && (
+      {showResult && !pasanganSama && (
         <div className="psa-result-actions">
           <button className="psa-icon-btn" onClick={onShare} title="Bagikan hasil" aria-label="Bagikan hasil">
             <IconShare size={15} />
@@ -341,16 +391,24 @@ export default function Converter({
       <button
         className="psa-convert-btn"
         onClick={onConvert}
-        disabled={loading || !jumlahValid}
-        aria-describedby={!jumlahValid && !loading ? "psa-cta-alasan" : undefined}
+        disabled={loading || !bisaKonversi}
+        aria-describedby={!bisaKonversi && !loading ? "psa-cta-alasan" : undefined}
+        aria-keyshortcuts="Control+Enter Meta+Enter"
       >
         {loading && <span className="psa-spinner" aria-hidden="true" />}
         {loading ? "Menghitung…" : "Konversi"}
+        {!loading && (
+          <span className="psa-kbd" aria-hidden="true">
+            {pintasanKonversi}
+          </span>
+        )}
       </button>
       {/* Alasan tombol mati, khusus pembaca layar — secara visual sudah   */}
       {/* dijelaskan oleh hint di bawah kolom hasil.                       */}
       <span id="psa-cta-alasan" className="visually-hidden">
-        Isi jumlah lebih dari nol untuk mengaktifkan tombol konversi
+        {pasanganSama
+          ? "Pilih aset tujuan yang berbeda untuk mengaktifkan tombol konversi"
+          : "Isi jumlah lebih dari nol untuk mengaktifkan tombol konversi"}
       </span>
     </div>
   );

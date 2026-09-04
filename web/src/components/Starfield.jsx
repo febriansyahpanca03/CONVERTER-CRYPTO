@@ -144,6 +144,8 @@ export default function Starfield() {
       <div className="psa-bg-scrim" />
       <div className="psa-bg-shade" />
       <div className="psa-bg-vignette" />
+      {/* Noise sangat tipis untuk memecah color banding pada gradient gelap */}
+      <div className="psa-bg-noise" />
       {/* 6: focal glow tipis di belakang converter */}
       <div className="psa-bg-focus" />
     </div>

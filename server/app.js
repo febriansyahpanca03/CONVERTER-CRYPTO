@@ -263,10 +263,77 @@ app.get("/api/price", rateLimitPublicData, async (req, res) => {
   }
 });
 
+function petakanIkon(body) {
+  const out = {};
+  for (const [id, v] of Object.entries(body)) out[id] = v.image;
+  return out;
+}
+
 /* ---------- Ikon token asli, dicache 24 jam (logo jarang berubah) --- */
 
 const iconCache = new Map();
 const ICON_TTL_MS = 24 * 60 * 60 * 1000;
+
+/* /coins/markets dipanggil SEKALI lalu dipakai dua endpoint: /api/icons
+   (logo) dan /api/sparklines (grafik mini 24 jam). Dulu hanya logo yang
+   diambil; menambah endpoint kedua yang memanggil upstream lagi akan
+   menggandakan pemakaian kuota untuk data yang sama persis.
+
+   sparkline_in_7d dari CoinGecko berisi ~168 titik per jam. Yang dipakai
+   kartu Pasangan Populer hanya 24 titik terakhir = 24 jam terakhir, dan
+   itu DATA ASLI, bukan hasil interpolasi atau angka acak. */
+async function ambilMarkets(ids) {
+  const key = ids.join(",");
+  const hit = iconCache.get(key);
+  if (hit && Date.now() - hit.at < ICON_TTL_MS) return { body: hit.body, cached: true };
+
+  const url =
+    "https://api.coingecko.com/api/v3/coins/markets" +
+    `?vs_currency=usd&ids=${key}&sparkline=true`;
+
+  const hasil = await singleFlight(`markets|${key}`, async () => {
+    const r = await fetch(url, {
+      headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
+    });
+    if (!r.ok) return { status: r.status };
+    const list = await r.json();
+    const body = {};
+    for (const c of list) {
+      const titik = Array.isArray(c.sparkline_in_7d?.price) ? c.sparkline_in_7d.price : null;
+      body[c.id] = {
+        image: c.image,
+        // 24 titik terakhir = 24 jam terakhir. null kalau CoinGecko tidak
+        // mengirim sparkline — konsumennya harus menampilkan skeleton,
+        // bukan garis buatan.
+        spark: titik && titik.length >= 24 ? titik.slice(-24) : null,
+      };
+    }
+    iconCache.set(key, { at: Date.now(), body });
+    return { body };
+  });
+  return hasil.status ? { status: hasil.status } : { body: hasil.body, cached: false };
+}
+
+/* Sparkline 24 jam untuk kartu Pasangan Populer. */
+app.get("/api/sparklines", rateLimitPublicData, async (req, res) => {
+  const ids = String(req.query.ids || "")
+    .split(",")
+    .filter((s) => /^[a-z0-9-]{1,40}$/.test(s))
+    .sort();
+  if (!ids.length) return res.status(400).json({ error: "Parameter tidak valid." });
+
+  try {
+    const hasil = await ambilMarkets(ids);
+    if (hasil.status) return res.status(hasil.status).json({ error: `CoinGecko ${hasil.status}` });
+    const body = {};
+    for (const [id, v] of Object.entries(hasil.body)) if (v.spark) body[id] = v.spark;
+    res.set("x-cache", hasil.cached ? "hit" : "miss");
+    res.json(body);
+  } catch (err) {
+    console.error("sparklines", err);
+    res.status(502).json({ error: "Data grafik mini tidak bisa diambil." });
+  }
+});
 
 app.get("/api/icons", rateLimitPublicData, async (req, res) => {
   const ids = String(req.query.ids || "")
@@ -276,39 +343,22 @@ app.get("/api/icons", rateLimitPublicData, async (req, res) => {
 
   if (!ids.length) return res.status(400).json({ error: "Parameter tidak valid." });
 
-  const key = ids.join(",");
-  const hit = iconCache.get(key);
-  if (hit && Date.now() - hit.at < ICON_TTL_MS) {
-    res.set("x-cache", "hit");
-    return res.json(hit.body);
-  }
-
-  const url =
-    "https://api.coingecko.com/api/v3/coins/markets" +
-    `?vs_currency=usd&ids=${ids.join(",")}&sparkline=false`;
+  const hit = iconCache.get(ids.join(","));
 
   try {
-    const result = await singleFlight(`icons|${key}`, async () => {
-      const r = await fetch(url, {
-        headers: CG_KEY ? { "x-cg-demo-api-key": CG_KEY } : {},
-      });
-      if (!r.ok) return { status: r.status };
-      const list = await r.json();
-      const body = {};
-      for (const c of list) body[c.id] = c.image;
-      iconCache.set(key, { at: Date.now(), body });
-      return { body };
-    });
+    const result = await ambilMarkets(ids);
 
     if (result.status) {
-      if (hit) return res.json(hit.body);
+      if (hit) return res.json(petakanIkon(hit.body));
       return res.status(result.status).json({ error: `CoinGecko ${result.status}` });
     }
-    res.set("x-cache", "miss");
-    res.json(result.body);
+    res.set("x-cache", result.cached ? "hit" : "miss");
+    // Bentuk respons endpoint ini TIDAK berubah ({id: urlGambar}) supaya
+    // konsumen lamanya tidak perlu ikut diubah.
+    res.json(petakanIkon(result.body));
   } catch (err) {
     console.error("icons", err);
-    if (hit) return res.json(hit.body);
+    if (hit) return res.json(petakanIkon(hit.body));
     res.status(502).json({ error: "Ikon tidak bisa diambil." });
   }
 });

@@ -9,10 +9,11 @@ import userEvent from "@testing-library/user-event";
 // sini murni: apakah komponen memilih angka yang BENAR untuk tiap pasangan.
 vi.mock("./lib/api.js", () => ({
   fetchPricesFor: vi.fn(),
+  fetchSparklines: vi.fn(),
 }));
 
 import { PopularPairs } from "./App.jsx";
-import { fetchPricesFor } from "./lib/api.js";
+import { fetchPricesFor, fetchSparklines } from "./lib/api.js";
 
 const PRICES = {
   bitcoin: { usd: 77_600, idr: 1_372_000_000, usd_24h_change: 0.42 },
@@ -23,6 +24,11 @@ const PRICES = {
 describe("PopularPairs", () => {
   beforeEach(() => {
     fetchPricesFor.mockReset();
+    // Default: sparkline tidak tersedia. Tes yang memang menguji grafik
+    // mini menimpanya sendiri — jadi tes lain tidak diam-diam bergantung
+    // pada data grafik.
+    fetchSparklines.mockReset();
+    fetchSparklines.mockResolvedValue({});
     fetchPricesFor.mockResolvedValue(PRICES);
   });
 
@@ -81,6 +87,29 @@ describe("PopularPairs", () => {
     await user.click(kartu);
 
     expect(onSelect).toHaveBeenCalledWith("btc", "idr");
+  });
+
+  it("menggambar sparkline dari harga asli, dan skeleton kalau datanya tidak ada", async () => {
+    fetchPricesFor.mockResolvedValue(PRICES);
+    // Hanya bitcoin yang punya sparkline; sisanya harus tetap skeleton —
+    // komponennya tidak boleh mengarang garis pengganti.
+    fetchSparklines.mockResolvedValue({
+      bitcoin: [10, 12, 11, 15, 14, 18],
+    });
+    render(<PopularPairs icons={{}} onSelect={() => {}} />);
+
+    const btcIdr = await screen.findByText("BTC/IDR");
+    const kartuBtc = btcIdr.closest(".psa-popular-card");
+    const garis = kartuBtc.querySelector(".psa-sparkline path");
+    expect(garis).toBeInTheDocument();
+    // 6 titik -> 1 perintah M + 5 perintah L
+    expect(garis.getAttribute("d").match(/L/g)).toHaveLength(5);
+
+    // Token tanpa data sparkline tetap menampilkan skeleton.
+    const ethUsdt = await screen.findByText("ETH/USDT");
+    const kartuEth = ethUsdt.closest(".psa-popular-card");
+    expect(kartuEth.querySelector(".psa-skeleton-spark")).toBeInTheDocument();
+    expect(kartuEth.querySelector(".psa-sparkline")).toBeNull();
   });
 
   it("menampilkan skeleton, bukan crash, kalau harga belum sempat dimuat", async () => {

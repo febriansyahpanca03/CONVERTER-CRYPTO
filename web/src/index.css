@@ -1156,10 +1156,19 @@ img {
   );
   pointer-events: none;
 }
+/* Glow default kartu sangat redup; begitu ada input/selector di dalamnya
+   yang aktif, glow-nya menguat sedikit. Yang berubah cuma box-shadow dan
+   border — tidak ada gradient berputar, dan tidak ada elemen di dalam
+   kartu yang ikut menyala satu per satu. */
 .psa-converter-shell:focus-within {
-  border-color: rgba(34, 211, 238, 0.35);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42), 0 0 46px rgba(34, 211, 238, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  border-color: rgba(34, 211, 238, 0.4);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42), 0 0 56px rgba(34, 211, 238, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-converter-shell {
+    transition: none;
+  }
 }
 .psa-converter {
   padding: 28px 32px;
@@ -1473,6 +1482,32 @@ img {
   margin-top: 6px;
   font-size: 12.5px;
   color: var(--text-faint);
+}
+
+/* Aset asal == tujuan. Sengaja BUKAN merah: tidak ada yang salah diketik
+   pengguna, hanya belum ada yang bisa dihitung — jadi nadanya informasi
+   (cyan lembut), dan langsung menawarkan jalan keluarnya lewat chip. */
+.psa-same-pair {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  border-radius: var(--radius-input);
+  background: rgba(34, 211, 238, 0.05);
+}
+.psa-same-pair-text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a8dbe8;
+}
+.psa-same-pair-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.psa-same-pair-chip {
+  min-height: 36px;
+  font-weight: 600;
 }
 @media (prefers-reduced-motion: no-preference) {
   .psa-result-pop {
@@ -1837,16 +1872,165 @@ img {
 .psa-status-delayed .psa-status-dot {
   background: var(--warning);
 }
-.psa-status-stale,
+/* Data lama = peringatan, bukan kegagalan. Merah lembut disisakan untuk
+   kondisi yang benar-benar gagal (offline/error). Status tidak diketahui
+   memakai abu-abu netral. */
+.psa-status-stale {
+  color: #d9a441;
+}
+.psa-status-stale .psa-status-dot {
+  background: #d9a441;
+}
+.psa-status-unknown {
+  color: var(--text-faint);
+}
+.psa-status-unknown .psa-status-dot {
+  background: var(--text-faint);
+}
 .psa-status-offline,
 .psa-status-error {
-  color: var(--danger);
+  color: #e88b8b;
 }
-.psa-status-stale .psa-status-dot,
 .psa-status-offline .psa-status-dot,
 .psa-status-error .psa-status-dot {
-  background: var(--danger);
+  background: #e88b8b;
 }
+/* Market context bar: panel tipis (bukan kartu) di bawah kolom hasil.
+   Latarnya lebih gelap dari kartu converter supaya terbaca sebagai
+   "informasi tertanam", bukan blok baru yang bersaing perhatian. */
+.psa-market-bar {
+  display: flex;
+  /* Satu baris di desktop (tinggi ~48px sesuai target panel tipis); baru
+     pecah jadi dua baris di layar sempit lewat media query di bawah. */
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: 48px;
+  margin-top: var(--space-3);
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  background: var(--surface-inset);
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+/* display:contents di desktop — kedua pembungkus ini larut sehingga
+   isinya jadi flex item langsung milik .psa-market-bar dan semuanya duduk
+   di SATU baris. Tanpa ini, dua pembungkus itu sendiri yang menjadi item
+   dan barnya selalu jadi dua baris (terukur 87px, target 44-52px).
+   Di mobile keduanya kembali jadi flex container (lihat media query). */
+.psa-market-bar-main,
+.psa-market-bar-sub {
+  display: contents;
+}
+@media (max-width: 767px) {
+  .psa-market-bar-main,
+  .psa-market-bar-sub {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+.psa-market-pair {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+.psa-market-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.psa-market-period {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.psa-market-rate {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.psa-market-rate strong {
+  color: var(--text);
+}
+.psa-market-dot {
+  opacity: 0.5;
+}
+.psa-market-time,
+.psa-market-source {
+  white-space: nowrap;
+}
+/* Sumber data ditulis lebih redup: informasinya wajib ada, tapi tidak
+   perlu bersaing dengan angka di sebelahnya. */
+.psa-market-source {
+  opacity: 0.75;
+}
+/* Tombol segarkan di dalam market bar.
+
+   Ada tarik-menarik nyata di sini: barnya harus tipis (~48px) tapi target
+   sentuh minimal 44x44px — dan tombol 44px + padding 16px sudah 60px, yang
+   membuatnya membungkus ke baris kedua (terukur: barnya jadi 87px).
+
+   Jalan keluarnya: kotak VISUAL-nya 30px, sedangkan area yang bisa diklik
+   diperluas ke 44x44 lewat ::after transparan yang meluber keluar. Area
+   sentuh tidak harus sama dengan kotak yang terlihat. */
+.psa-market-bar .psa-meta-refresh {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.psa-market-bar .psa-meta-refresh::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+.psa-market-bar-error {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  border-color: rgba(232, 139, 139, 0.28);
+  background: rgba(232, 139, 139, 0.06);
+}
+/* Di layar sempit barisnya memang sudah wrap sendiri; yang perlu
+   ditegaskan cuma jaraknya supaya dua baris itu tidak berdempetan. */
+@media (max-width: 767px) {
+  /* Layar sempit: bertumpuk jadi dua baris logis (identitas pasangan di
+     atas, detail harga di bawah) supaya tidak ada informasi yang terdesak
+     keluar. Font & gap dirapatkan supaya tiap baris tidak pecah lagi
+     jadi beberapa baris. */
+  .psa-market-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+  .psa-market-bar-main,
+  .psa-market-bar-sub {
+    row-gap: 4px;
+    column-gap: 8px;
+  }
+  .psa-market-pair {
+    font-size: 12.5px;
+  }
+  /* Tombol segarkan tetap di ujung kanan barisnya. */
+  .psa-market-bar .psa-meta-refresh {
+    margin-left: auto;
+  }
+}
+
 .psa-meta-disclaimer {
   font-size: 12.5px;
   color: var(--text-faint);
@@ -2095,6 +2279,68 @@ img {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+/* Ringkasan tipis di bawah daftar: mengisi ruang yang tadinya kosong
+   dengan sesuatu yang berguna, bukan sekadar udara. Semua angkanya
+   dihitung dari riwayat di localStorage yang memang sudah ada. */
+.psa-history-summary {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.psa-history-summary strong {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+/* Empty state: ikon garis sederhana, terpusat, tanpa ilustrasi besar. */
+.psa-history-blank {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: var(--space-4) 0;
+}
+.psa-history-blank-icon {
+  color: var(--text-faint);
+  opacity: 0.5;
+}
+.psa-history-blank-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.psa-history-blank-text {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  max-width: 240px;
+  line-height: 1.5;
+}
+.psa-history-blank-cta {
+  margin-top: 2px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  color: #7fe6f7;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.psa-history-blank-cta:hover {
+  background: rgba(34, 211, 238, 0.15);
+  border-color: rgba(34, 211, 238, 0.45);
 }
 .psa-history-head {
   flex-shrink: 0;
@@ -2496,6 +2742,14 @@ img {
   width: 74px;
   height: 11px;
 }
+/* Ukurannya sama persis dengan SVG sparkline (56x20) supaya kartunya tidak
+   berubah lebar saat garis aslinya masuk. */
+.psa-skeleton-spark {
+  width: 56px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
 @media (prefers-reduced-motion: reduce) {
   .psa-skeleton {
     animation: none;
@@ -2801,8 +3055,15 @@ img {
 /* melintasi layar, biar tidak ikut menimpa konten pas discroll.         */
 .psa-help-bot {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  /* Di layar lebar, tombolnya digeser ke selokan di luar konten utama
+     (--shell-w) supaya tidak pernah menimpa kontrol chart di pojok kanan
+     bawah kartu. max() menjaga jarak minimum 20px saat layarnya belum
+     cukup lebar untuk itu.
+     env(safe-area-inset-*) untuk perangkat berponi/gestur bar. */
+  right: max(20px, calc((100vw - var(--shell-w)) / 2 - 76px + env(safe-area-inset-right, 0px)));
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  /* z-index: help (50) < panel bantuan (55) < modal chart (60).
+     Disusun eksplisit supaya modal chart selalu menang atas badge ini. */
   z-index: 50;
   width: 68px;
   height: 68px;
@@ -2818,6 +3079,17 @@ img {
   box-shadow: var(--shadow-md);
   animation: psa-help-bot-idle 4s ease-in-out infinite;
   transition: transform 0.15s, box-shadow 0.15s;
+}
+/* Saat pengguna sedang berinteraksi dengan kartu chart, badge-nya
+   diredupkan & dikecilkan supaya tidak menutupi tooltip atau kontrol
+   periode. Kelasnya dipasang oleh PriceInsightCard lewat pointerenter. */
+body.psa-chart-aktif .psa-help-bot {
+  opacity: 0.35;
+  transform: scale(0.8);
+  animation: none;
+}
+body.psa-chart-aktif .psa-help-bot:hover {
+  opacity: 1;
 }
 .psa-help-bot:hover {
   animation: none;
@@ -3096,10 +3368,24 @@ img {
   white-space: nowrap;
   transition: transform 0.15s, border-color 0.15s, background 0.15s;
 }
+/* Angkat maksimal 2px + border cyan tipis — cukup untuk terasa bisa
+   diklik, jauh dari kesan kartu melayang. */
 .psa-popular-card:hover {
-  border-color: var(--border-strong);
+  border-color: rgba(34, 211, 238, 0.35);
   background: var(--panel-hover);
   transform: translateY(-2px);
+}
+.psa-sparkline {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.psa-popular-card:hover .psa-sparkline {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-popular-card:hover {
+    transform: none;
+  }
 }
 .psa-popular-info {
   display: flex;
@@ -3369,5 +3655,120 @@ img {
 @media (prefers-reduced-motion: reduce) {
   .psa-skip-link {
     transition: none;
+  }
+}
+
+/* ============================================================ */
+/*  Entrance, crossfade chart, noise, hint keyboard                */
+/* ============================================================ */
+
+/* Entrance animation antarbagian. Elemen bertanda [data-reveal] mulai
+   sedikit turun & transparan, lalu naik ke posisinya saat pertama kali
+   masuk viewport (lihat useReveal di App.jsx). Hanya sekali seumur
+   halaman — kelas .is-revealed tidak pernah dilepas lagi. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.42s ease-out, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+}
+/* Stagger antar-kartu: tiap bagian berikutnya menyusul sedikit lebih
+   lambat, maksimal ~60ms per langkah supaya tidak terasa mengantre. */
+[data-reveal]:nth-of-type(2) {
+  transition-delay: 60ms;
+}
+[data-reveal]:nth-of-type(3) {
+  transition-delay: 120ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Crossfade saat berganti Garis/Candle atau periode. Elemen di-remount
+   lewat key, jadi animasinya jalan dari awal tiap pergantian. */
+@media (prefers-reduced-motion: no-preference) {
+  .psa-chart-fade {
+    animation: psa-chart-fade-in 0.28s ease-out;
+  }
+}
+@keyframes psa-chart-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Tombol Perbesar: ikon + teks sejajar. */
+.psa-insight-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Noise halus di seluruh viewport. Tujuannya satu: memecah color banding
+   pada gradient gelap yang lebar (paling terlihat di area scrim). SVG
+   feTurbulence sebagai data-URI — tidak ada file gambar yang perlu
+   diunduh, dan opacity-nya sangat rendah supaya tidak terbaca sebagai
+   tekstur. */
+.psa-bg-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  opacity: 0.035;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+@media (max-width: 767px) {
+  /* Mobile: layarnya kecil, banding-nya tidak seterlihat itu, dan noise
+     yang ditumpuk di atas seluruh viewport ikut membebani compositing. */
+  .psa-bg-noise {
+    opacity: 0.02;
+  }
+}
+
+/* Hint pintasan keyboard — hanya desktop, dan disembunyikan dari pembaca
+   layar karena informasinya sudah ada di aria-keyshortcuts. */
+.psa-kbd {
+  display: none;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-faint);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+@media (min-width: 900px) and (pointer: fine) {
+  .psa-kbd {
+    display: inline-block;
+  }
+}
+
+/* Badge bantuan disembunyikan selagi tombol Konversi terlihat di layar
+   sempit — lihat IntersectionObserver di HelpBot.jsx. Memakai
+   visibility+opacity (bukan display:none) supaya transisinya halus dan
+   fokus keyboard tidak melompat mendadak saat badge-nya kembali. */
+.psa-help-bot.is-tersembunyi {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.85) translateY(6px);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .psa-help-bot.is-tersembunyi {
+    transform: none;
   }
 }
